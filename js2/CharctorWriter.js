@@ -10,8 +10,9 @@ export default class CharctorWriter
         this.posY = 91;
         this.posX = 45;
 
+        this.newDirection = null;
         this.currentDirection = direction;
-        this.direction = {
+        this.directionConst = {
             top:   {top:0,right:1,down:2,left:3},
             right: {top:3,right:0,down:1,left:2},
             down:  {top:2,right:3,down:0,left:1},
@@ -19,7 +20,7 @@ export default class CharctorWriter
         };
 
         if (direction != 'top') {
-            const turnCount = this.direction['top'][direction];
+            const turnCount = this.directionConst['top'][direction];
             if (turnCount > 0) for (let i=0; i<turnCount;i++) this.turn();
         }
     }
