@@ -7,8 +7,8 @@ export default class CharctorWriter
         }
         this.mImageData = CHARCTOR_DATAS[index];
 
-        this.posY = 91;
-        this.posX = 45;
+        this.posY = 1;
+        this.posX = 1;
 
         this.newDirection = null;
         this.currentDirection = direction;

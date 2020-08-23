@@ -11,7 +11,7 @@ export default class Game
         this.currentFrame = JSON.parse(JSON.stringify(this.stage.mImageData));
 
         this.player = new CharctorWriter('player', 'top');
-        this.putCharactor(this.player);
+        // this.putCharactor(this.player);
 
         this.enemies = {};
 
