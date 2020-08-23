@@ -5,3 +5,7 @@ function rgb(r,g,b)
     }).join("");
     return "#" + c;
 }
+
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min) + min);
+}
