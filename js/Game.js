@@ -1,16 +1,40 @@
+import CharctorWriter from './CharctorWriter.js';
+
 export default class Game
 {
-    constructor(inCanvas, stage, charactor)
+    constructor(inCanvas, stage)
     {
         this.mCanvas = inCanvas;
         this.prevTimestamp = 0;
 
         this.stage = stage;
-        this.charactor = charactor;
+        this.currentFrame = JSON.parse(JSON.stringify(this.stage.mImageData));
+
+        this.player = new CharctorWriter('player', 'top');
+        // this.putCharactor(this.player);
+
+        this.enemies = {};
+
+        for (let i=0;i<5;i++) {
+            this.enemies[i] = new CharctorWriter('enemy', 'down');
+            this.putCharactor(this.enemies[i]);
+        }
+
+        this.enemyMove = 5;
 
         window.addEventListener("keydown", this.keyDown.bind(this));
         window.addEventListener("keyup", this.keyUp.bind(this));
-
+        let self = this;
+        document.getElementById("up").onclick = function(
+          ) {self.player.newDirection = "up";};
+        document.getElementById("down").onclick = function(
+          ) {self.player.newDirection = "down";};
+        document.getElementById("left").onclick = function(
+          ) {self.player.newDirection = "left";};
+        document.getElementById("right").onclick = function(
+          ) {self.player.newDirection = "right";};
+          
+        
         this.currentFrame = JSON.parse(JSON.stringify(this.stage.mImageData));
     }
 
@@ -21,66 +45,30 @@ export default class Game
             window.requestAnimationFrame(this.playing.bind(this));
             return;
         }
-        if (
-            (this.charactor.isTurn && this.charactor.posX > this.stage.stageWidth - this.charactor.mImageData[0].length * PIXCEL_SIZE) ||
-            (!this.charactor.isTurn && this.charactor.posX <= 0)
-        ) {
-            this.charactor.moving = false;
+
+        // プレイヤーの動作
+        this.currentFrame = JSON.parse(JSON.stringify(this.stage.mImageData));
+        this.moveCharactor(this.player);
+
+        // 敵の動作
+        for (let i=0; i<Object.keys(this.enemies).length; i++) {
+            this.enemies[i].newDirection = null;
+            if (this.enemyMove === 0) {
+                let constDirection = [null, 'top', 'down', 'right', 'left'];
+                this.enemies[i].newDirection = constDirection[getRandomInt(0, 4)];
+            }
+            this.moveCharactor(this.enemies[i]);
         }
 
-        this.prevTimestamp = timestamp;
-        let prevPosY = this.charactor.posY;
-        let standingPos = this.charactor.getStandingPosition();
-
-        if (this.charactor.jumping) {
-            this.charactor.posY =
-                (0.5 * 0.4 * this.charactor.jumpTimer * this.charactor.jumpTimer - 10 * this.charactor.jumpTimer) +
-                (this.charactor.jumpstartPos - PIXCEL_SIZE * this.charactor.mImageData.length);
-            this.charactor.posY = this.charactor.posY - (this.charactor.posY % PIXCEL_SIZE);
-            this.charactor.jumpTimer++;
-        } else if (!this.charactor.standing) {
-            this.charactor.posY += PIXCEL_SIZE;
+        if (this.enemyMove === 0) {
+            this.enemyMove = 5;
+        } else {
+            this.enemyMove--;
         }
+        this.checkHitEnemies();
 
-        // 足場判定
-        let canStanding = false;
-        for (let i=0;i < standingPos["x"].length;i++){
-            if (
-                !this.stage.mImageData[standingPos["y"]] ||
-                !this.stage.mImageData[standingPos["y"]][standingPos["x"][i]]
-            ) {
-                continue;
-            }
-
-            // 1か所でも足場があれば乗る
-            if (
-                prevPosY < this.charactor.posY &&
-                "A" === this.stage.mImageData[standingPos["y"]][standingPos["x"][i]]
-            ) {
-                this.charactor.posY = this.charactor.posY - PIXCEL_SIZE;
-                this.charactor.jumping = false;
-                this.charactor.standing = true;
-            }
-
-            // 足場が一つもなければ落ちる
-            if ("A" === this.stage.mImageData[standingPos["y"]][standingPos["x"][i]]) {
-                canStanding = true;
-            }
-        }
-
-        if (prevPosY === this.charactor.posY && !canStanding) this.charactor.standing = false;
-
-        if (this.charactor.moving) {
-            if (this.charactor.isTurn) {
-                this.charactor.posX += PIXCEL_SIZE;
-            } else {
-                this.charactor.posX -= PIXCEL_SIZE;
-            }
-        }
-
-        this.putCharactor();
         this.draw();
-
+        this.prevTimestamp = timestamp;
         window.requestAnimationFrame(this.playing.bind(this));
     }
 
@@ -89,26 +77,20 @@ export default class Game
         switch(e.keyCode) {
             case 37:    // arrowLeft
             case 65:    // A
-                this.charactor.turn(false);
-                this.charactor.moving = true;
+                this.player.newDirection = 'left';
                 break;
             case 39:    // arrowRight
             case 68:    // D
-                this.charactor.turn(true);
-                this.charactor.moving = true;
+                this.player.newDirection = 'right';
                 break;
-            case 32:    // space
+            // case 32:    // space
             case 38:    // arrowUp
             case 87:    // W
-                if (this.charactor.jumping) return;
-
-                this.charactor.jumping = true;
-                this.charactor.jumpTimer = 0;
-                let standingPos = this.charactor.getStandingPosition();
-                this.charactor.jumpstartPos = standingPos["y"] * PIXCEL_SIZE;
+                this.player.newDirection = 'top';
                 break;
             case 40:    // arrowDown
             case 83:    // S
+                this.player.newDirection = 'down';
                 break;
         }
     }
@@ -120,38 +102,123 @@ export default class Game
             case 65:    // A
             case 39:    // arrowRight
             case 68:    // D
-                this.charactor.moving = false;
-                break;
-            case 32:    // space
             case 38:    // arrowUp
             case 87:    // W
-                break;
             case 40:    // arrowDown
             case 83:    // S
+                this.player.newDirection = null;
                 break;
         }
     }
 
-    putCharactor()
+    putCharactor(charactor)
     {
-        this.currentFrame = JSON.parse(JSON.stringify(this.stage.mImageData));
-        for (let row=0;row<this.charactor.mImageData.length; row++) {
-            const currentPosY = this.charactor.posY/PIXCEL_SIZE + row;
-            if (!this.currentFrame[currentPosY]) {
+        let minX = 0, maxX = 100,
+            minY = 0, maxY = 100;
+        charactor.posY = getRandomInt(minY, maxY);
+        charactor.posX = getRandomInt(minX, maxX);
+        if (this.checkHitWall(charactor)) {
+            this.putCharactor(charactor);
+        }
+    }
+
+    moveCharactor(charactor)
+    {
+        if (null !== charactor.newDirection) {
+            if (charactor.currentDirection !== charactor.newDirection) {
+                const turnCount = charactor.directionConst[charactor.currentDirection][charactor.newDirection];
+                charactor.currentDirection = charactor.newDirection;
+                if (turnCount > 0) for (let i=0; i<turnCount;i++) charactor.turn();
+            }
+
+            let prePosX = charactor.posX;
+            let prePosY = charactor.posY;
+            switch (charactor.newDirection) {
+                case 'top':
+                    charactor.posY--;
+                    break;
+                case 'down':
+                    charactor.posY++;
+                    break;
+                case 'right':
+                    charactor.posX++;
+                    break;
+                case 'left':
+                    charactor.posX--;
+                    break;
+            }
+
+            if (this.checkHitWall(charactor)) {
+                charactor.posY = prePosY;
+                charactor.posX = prePosX;
+            }
+        }
+        for (let row=0;row<charactor.mImageData.length; row++) {
+            const currentPosY = charactor.posY + row;
+            if (undefined === this.currentFrame[currentPosY]) {
                 continue;
             }
-            for (let col=0; col<this.charactor.mImageData[row].length; col++) {
-                const currentPosX = this.charactor.posX/PIXCEL_SIZE + col;
-                if (!this.currentFrame[currentPosY][currentPosX]) {
+            for (let col=0; col<charactor.mImageData[row].length; col++) {
+                const currentPosX = charactor.posX + col;
+                if (undefined === this.currentFrame[currentPosY][currentPosX]) {
                     continue;
                 }
-                let color = this.charactor.mImageData[row][col];
+                let color = charactor.mImageData[row][col];
                 if ('F' === color) {
-                    color = this.stage.mImageData[currentPosY][currentPosX];
+                    color = this.currentFrame[currentPosY][currentPosX];
                 }
                 this.currentFrame[currentPosY][currentPosX] = color;
             }
         }
+    }
+
+    checkHitWall(charactor)
+    {
+        for (let row=0;row<charactor.mImageData.length; row++) {
+            const currentPosY = charactor.posY + row;
+            if (undefined === this.currentFrame[currentPosY]) {
+                continue;
+            }
+            for (let col=0; col<charactor.mImageData[row].length; col++) {
+                const currentPosX = charactor.posX + col;
+                if (undefined === this.currentFrame[currentPosY][currentPosX]) {
+                    continue;
+                }
+                if (
+                    'F' !== charactor.mImageData[row][col] &&
+                    'A' === this.currentFrame[currentPosY][currentPosX]
+                ) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    checkHitEnemies()
+    {
+        for (let row=0;row<this.player.mImageData.length; row++) {
+            for (let col=0; col<this.player.mImageData[row].length; col++) {
+                for (let enemyCount=0;enemyCount<Object.keys(this.enemies).length;enemyCount++) {
+                    for (let eRow=0;eRow<this.enemies[enemyCount].mImageData.length; eRow++) {
+                        for (let eCol=0; eCol<this.enemies[enemyCount].mImageData[eRow].length; eCol++) {
+                            if (
+                                'F' !== this.player.mImageData[row][col] &&
+                                'F' !== this.enemies[enemyCount].mImageData[row][col] &&
+                                this.player.posY + row === this.enemies[enemyCount].posY + eRow &&
+                                this.player.posX + col === this.enemies[enemyCount].posX + eCol
+                            ) {
+                                alert('hit!');
+                                this.player.newDirection = null;
+                                this.putCharactor(this.player);
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     draw()
