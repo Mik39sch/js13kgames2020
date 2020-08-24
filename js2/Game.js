@@ -24,7 +24,17 @@ export default class Game
 
         window.addEventListener("keydown", this.keyDown.bind(this));
         window.addEventListener("keyup", this.keyUp.bind(this));
-
+        let self = this;
+        document.getElementById("up").onclick = function(
+          ) {self.player.newDirection = "up";};
+        document.getElementById("down").onclick = function(
+          ) {self.player.newDirection = "down";};
+        document.getElementById("left").onclick = function(
+          ) {self.player.newDirection = "left";};
+        document.getElementById("right").onclick = function(
+          ) {self.player.newDirection = "right";};
+          
+        
         this.currentFrame = JSON.parse(JSON.stringify(this.stage.mImageData));
     }
 

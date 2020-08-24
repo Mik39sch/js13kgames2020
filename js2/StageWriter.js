@@ -2,12 +2,15 @@ export default class StageWriter
 {
     constructor()
     {
-        this.pathWidth = 10;
-        this.createMaze(100, 100);
+        this.pathWidth = PIXCEL_SIZE+2;
+        this.createMaze(300, 300);
 
         this.stageHeight = this.mImageData.length * PIXCEL_SIZE;
         this.stageWidth = this.mImageData[0].length * PIXCEL_SIZE;
     }
+    
+    greateMazeAsTorneko(width, height)
+    {}
 
     createMaze(width, height)
     {
