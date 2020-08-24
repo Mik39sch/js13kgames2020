@@ -1,11 +1,11 @@
-export default class CharctorWriter
+export default class CharacterWriter
 {
     constructor(index, direction)
     {
-        if (!CHARCTOR_DATAS[index]) {
+        if (!CHARACTER_DATA[index]) {
             index = 'player';
         }
-        this.mImageData = CHARCTOR_DATAS[index];
+        this.mImageData = CHARACTER_DATA[index];
 
         this.posY = 1;
         this.posX = 1;
@@ -36,24 +36,3 @@ export default class CharctorWriter
         this.mImageData = turnImg;
     }
 }
-
-const CHARCTOR_DATAS = {
-    'player': [
-        ['F','F','2','2','2','F','F'],
-        ['F','2','1','1','1','2','F'],
-        ['2','1','2','1','2','1','2'],
-        ['2','1','1','1','1','1','2'],
-        ['2','1','1','1','1','1','2'],
-        ['F','2','1','1','1','2','F'],
-        ['F','F','2','2','2','F','F'],
-    ],
-    'enemy': [
-        ['F','F','2','2','2','F','F'],
-        ['F','2','2','2','2','2','F'],
-        ['2','2','3','2','3','2','2'],
-        ['2','2','2','2','2','2','2'],
-        ['2','2','2','2','2','2','2'],
-        ['F','2','2','2','2','2','F'],
-        ['F','F','2','2','2','F','F'],
-    ],
-};

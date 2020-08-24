@@ -22,7 +22,7 @@ export default class Game
             return;
         }
         if (
-            (this.charactor.isTurn && this.charactor.posX > this.stage.stageWidth - this.charactor.mImageData[0].length * PIXCEL_SIZE) ||
+            (this.charactor.isTurn && this.charactor.posX > this.stage.stageWidth - this.charactor.mImageData[0].length * PIXEL_SIZE) ||
             (!this.charactor.isTurn && this.charactor.posX <= 0)
         ) {
             this.charactor.moving = false;
@@ -35,11 +35,11 @@ export default class Game
         if (this.charactor.jumping) {
             this.charactor.posY =
                 (0.5 * 0.4 * this.charactor.jumpTimer * this.charactor.jumpTimer - 10 * this.charactor.jumpTimer) +
-                (this.charactor.jumpstartPos - PIXCEL_SIZE * this.charactor.mImageData.length);
-            this.charactor.posY = this.charactor.posY - (this.charactor.posY % PIXCEL_SIZE);
+                (this.charactor.jumpstartPos - PIXEL_SIZE * this.charactor.mImageData.length);
+            this.charactor.posY = this.charactor.posY - (this.charactor.posY % PIXEL_SIZE);
             this.charactor.jumpTimer++;
         } else if (!this.charactor.standing) {
-            this.charactor.posY += PIXCEL_SIZE;
+            this.charactor.posY += PIXEL_SIZE;
         }
 
         // 足場判定
@@ -57,7 +57,7 @@ export default class Game
                 prevPosY < this.charactor.posY &&
                 "A" === this.stage.mImageData[standingPos["y"]][standingPos["x"][i]]
             ) {
-                this.charactor.posY = this.charactor.posY - PIXCEL_SIZE;
+                this.charactor.posY = this.charactor.posY - PIXEL_SIZE;
                 this.charactor.jumping = false;
                 this.charactor.standing = true;
             }
@@ -72,9 +72,9 @@ export default class Game
 
         if (this.charactor.moving) {
             if (this.charactor.isTurn) {
-                this.charactor.posX += PIXCEL_SIZE;
+                this.charactor.posX += PIXEL_SIZE;
             } else {
-                this.charactor.posX -= PIXCEL_SIZE;
+                this.charactor.posX -= PIXEL_SIZE;
             }
         }
 
@@ -105,7 +105,7 @@ export default class Game
                 this.charactor.jumping = true;
                 this.charactor.jumpTimer = 0;
                 let standingPos = this.charactor.getStandingPosition();
-                this.charactor.jumpstartPos = standingPos["y"] * PIXCEL_SIZE;
+                this.charactor.jumpstartPos = standingPos["y"] * PIXEL_SIZE;
                 break;
             case 40:    // arrowDown
             case 83:    // S
@@ -136,12 +136,12 @@ export default class Game
     {
         this.currentFrame = JSON.parse(JSON.stringify(this.stage.mImageData));
         for (let row=0;row<this.charactor.mImageData.length; row++) {
-            const currentPosY = this.charactor.posY/PIXCEL_SIZE + row;
+            const currentPosY = this.charactor.posY/PIXEL_SIZE + row;
             if (!this.currentFrame[currentPosY]) {
                 continue;
             }
             for (let col=0; col<this.charactor.mImageData[row].length; col++) {
-                const currentPosX = this.charactor.posX/PIXCEL_SIZE + col;
+                const currentPosX = this.charactor.posX/PIXEL_SIZE + col;
                 if (!this.currentFrame[currentPosY][currentPosX]) {
                     continue;
                 }
@@ -159,7 +159,7 @@ export default class Game
         for (let row = 0; row < this.currentFrame.length; row++) {
             for (let col = 0; col < this.currentFrame[row].length; col++) {
                 this.mCanvas.fillStyle = COLORS[this.currentFrame[row][col]];
-                this.mCanvas.fillRect(col*PIXCEL_SIZE, row*PIXCEL_SIZE, PIXCEL_SIZE, PIXCEL_SIZE);
+                this.mCanvas.fillRect(col*PIXEL_SIZE, row*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
             }
         }
     }

@@ -2,15 +2,33 @@ export default class StageWriter
 {
     constructor()
     {
-        this.pathWidth = PIXCEL_SIZE+2;
-        this.createMaze(300, 300);
+        this.pathWidth = CHARACTER_DATA.player.length+1;
+        this.createMaze(100, 100);
 
-        this.stageHeight = this.mImageData.length * PIXCEL_SIZE;
-        this.stageWidth = this.mImageData[0].length * PIXCEL_SIZE;
+        this.stageHeight = this.mImageData.length * PIXEL_SIZE;
+        this.stageWidth = this.mImageData[0].length * PIXEL_SIZE;
     }
-    
-    greateMazeAsTorneko(width, height)
+
+    createMazeAsTorneko(width, height)
     {}
+
+    split(stage)
+    {
+        let margin = 10;
+        if (
+            (stage.x1 - stage.x0 < margin * 2) ||
+            (stage.y1 - stage.y0 < margin * 2) ||
+            (getRandomInt(0,5) === 0)
+        ) {
+            return [stage];
+        }
+
+        if (getRandomInt(0,2) === 0) {
+            // 縦分割
+            let a = getRandomInt(stage.y0 + margin, stage.y1 - margin);
+            return new rectangle
+        }
+    }
 
     createMaze(width, height)
     {

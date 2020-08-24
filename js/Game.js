@@ -1,4 +1,4 @@
-import CharctorWriter from './CharctorWriter.js';
+import CharacterWriter from './CharacterWriter.js';
 
 export default class Game
 {
@@ -10,14 +10,14 @@ export default class Game
         this.stage = stage;
         this.currentFrame = JSON.parse(JSON.stringify(this.stage.mImageData));
 
-        this.player = new CharctorWriter('player', 'top');
-        // this.putCharactor(this.player);
+        this.player = new CharacterWriter('player', 'top');
+        // this.putCharacter(this.player);
 
         this.enemies = {};
 
         for (let i=0;i<5;i++) {
-            this.enemies[i] = new CharctorWriter('enemy', 'down');
-            this.putCharactor(this.enemies[i]);
+            this.enemies[i] = new CharacterWriter('enemy', 'down');
+            this.putCharacter(this.enemies[i]);
         }
 
         this.enemyMove = 5;
@@ -33,8 +33,8 @@ export default class Game
           ) {self.player.newDirection = "left";};
         document.getElementById("right").onclick = function(
           ) {self.player.newDirection = "right";};
-          
-        
+
+
         this.currentFrame = JSON.parse(JSON.stringify(this.stage.mImageData));
     }
 
@@ -48,7 +48,7 @@ export default class Game
 
         // プレイヤーの動作
         this.currentFrame = JSON.parse(JSON.stringify(this.stage.mImageData));
-        this.moveCharactor(this.player);
+        this.moveCharacter(this.player);
 
         // 敵の動作
         for (let i=0; i<Object.keys(this.enemies).length; i++) {
@@ -57,7 +57,7 @@ export default class Game
                 let constDirection = [null, 'top', 'down', 'right', 'left'];
                 this.enemies[i].newDirection = constDirection[getRandomInt(0, 4)];
             }
-            this.moveCharactor(this.enemies[i]);
+            this.moveCharacter(this.enemies[i]);
         }
 
         if (this.enemyMove === 0) {
@@ -111,59 +111,59 @@ export default class Game
         }
     }
 
-    putCharactor(charactor)
+    putCharacter(character)
     {
         let minX = 0, maxX = 100,
             minY = 0, maxY = 100;
-        charactor.posY = getRandomInt(minY, maxY);
-        charactor.posX = getRandomInt(minX, maxX);
-        if (this.checkHitWall(charactor)) {
-            this.putCharactor(charactor);
+        character.posY = getRandomInt(minY, maxY);
+        character.posX = getRandomInt(minX, maxX);
+        if (this.checkHitWall(character)) {
+            this.putCharacter(character);
         }
     }
 
-    moveCharactor(charactor)
+    moveCharacter(character)
     {
-        if (null !== charactor.newDirection) {
-            if (charactor.currentDirection !== charactor.newDirection) {
-                const turnCount = charactor.directionConst[charactor.currentDirection][charactor.newDirection];
-                charactor.currentDirection = charactor.newDirection;
-                if (turnCount > 0) for (let i=0; i<turnCount;i++) charactor.turn();
+        if (null !== character.newDirection) {
+            if (character.currentDirection !== character.newDirection) {
+                const turnCount = character.directionConst[character.currentDirection][character.newDirection];
+                character.currentDirection = character.newDirection;
+                if (turnCount > 0) for (let i=0; i<turnCount;i++) character.turn();
             }
 
-            let prePosX = charactor.posX;
-            let prePosY = charactor.posY;
-            switch (charactor.newDirection) {
+            let prePosX = character.posX;
+            let prePosY = character.posY;
+            switch (character.newDirection) {
                 case 'top':
-                    charactor.posY--;
+                    character.posY--;
                     break;
                 case 'down':
-                    charactor.posY++;
+                    character.posY++;
                     break;
                 case 'right':
-                    charactor.posX++;
+                    character.posX++;
                     break;
                 case 'left':
-                    charactor.posX--;
+                    character.posX--;
                     break;
             }
 
-            if (this.checkHitWall(charactor)) {
-                charactor.posY = prePosY;
-                charactor.posX = prePosX;
+            if (this.checkHitWall(character)) {
+                character.posY = prePosY;
+                character.posX = prePosX;
             }
         }
-        for (let row=0;row<charactor.mImageData.length; row++) {
-            const currentPosY = charactor.posY + row;
+        for (let row=0;row<character.mImageData.length; row++) {
+            const currentPosY = character.posY + row;
             if (undefined === this.currentFrame[currentPosY]) {
                 continue;
             }
-            for (let col=0; col<charactor.mImageData[row].length; col++) {
-                const currentPosX = charactor.posX + col;
+            for (let col=0; col<character.mImageData[row].length; col++) {
+                const currentPosX = character.posX + col;
                 if (undefined === this.currentFrame[currentPosY][currentPosX]) {
                     continue;
                 }
-                let color = charactor.mImageData[row][col];
+                let color = character.mImageData[row][col];
                 if ('F' === color) {
                     color = this.currentFrame[currentPosY][currentPosX];
                 }
@@ -172,20 +172,20 @@ export default class Game
         }
     }
 
-    checkHitWall(charactor)
+    checkHitWall(character)
     {
-        for (let row=0;row<charactor.mImageData.length; row++) {
-            const currentPosY = charactor.posY + row;
+        for (let row=0;row<character.mImageData.length; row++) {
+            const currentPosY = character.posY + row;
             if (undefined === this.currentFrame[currentPosY]) {
                 continue;
             }
-            for (let col=0; col<charactor.mImageData[row].length; col++) {
-                const currentPosX = charactor.posX + col;
+            for (let col=0; col<character.mImageData[row].length; col++) {
+                const currentPosX = character.posX + col;
                 if (undefined === this.currentFrame[currentPosY][currentPosX]) {
                     continue;
                 }
                 if (
-                    'F' !== charactor.mImageData[row][col] &&
+                    'F' !== character.mImageData[row][col] &&
                     'A' === this.currentFrame[currentPosY][currentPosX]
                 ) {
                     return true;
@@ -210,7 +210,7 @@ export default class Game
                             ) {
                                 alert('hit!');
                                 this.player.newDirection = null;
-                                this.putCharactor(this.player);
+                                this.putCharacter(this.player);
                                 return true;
                             }
                         }
@@ -226,7 +226,7 @@ export default class Game
         for (let row = 0; row < this.currentFrame.length; row++) {
             for (let col = 0; col < this.currentFrame[row].length; col++) {
                 this.mCanvas.fillStyle = COLORS[this.currentFrame[row][col]];
-                this.mCanvas.fillRect(col*PIXCEL_SIZE, row*PIXCEL_SIZE, PIXCEL_SIZE, PIXCEL_SIZE);
+                this.mCanvas.fillRect(col*PIXEL_SIZE, row*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
             }
         }
     }

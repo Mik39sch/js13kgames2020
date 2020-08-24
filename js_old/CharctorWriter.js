@@ -1,11 +1,11 @@
-export default class CharctorWriter
+export default class CharacterWriter
 {
     constructor(index)
     {
-        if (!CHARCTOR_DATAS[index]) {
+        if (!CHARACTER_DATA[index]) {
             index = 'normal';
         }
-        this.mImageData = CHARCTOR_DATAS[index];
+        this.mImageData = CHARACTER_DATA[index];
 
         this.posY = 0;
         this.posX = 0;
@@ -14,7 +14,7 @@ export default class CharctorWriter
         this.moving = false;
         this.jumping = false;
         this.jumpTimer = 0;
-        this.jumpstartPos = 0;
+        this.jumpStartPos = 0;
         this.standing = false;
     }
 
@@ -37,13 +37,13 @@ export default class CharctorWriter
 
     getStandingPosition()
     {
-        let standPosY = (this.posY/PIXCEL_SIZE + this.mImageData.length),
+        let standPosY = (this.posY/PIXEL_SIZE + this.mImageData.length),
             standPosX = [];
 
         const img = this.mImageData[this.mImageData.length-1];
         for (let col=0;col < img.length; col++) {
             if ("F" !== img[col]) {
-                standPosX.push(col + this.posX/PIXCEL_SIZE);
+                standPosX.push(col + this.posX/PIXEL_SIZE);
             }
         }
 
@@ -51,7 +51,7 @@ export default class CharctorWriter
     }
 }
 
-const CHARCTOR_DATAS = {
+const CHARACTER_DATA = {
     'normal': [
         ['F','F','F','F','F','F','F','F','F','F','F','F','F','F','F'],
         ['F','F','F','F','F','F','F','F','F','F','F','F','F','F','F'],
