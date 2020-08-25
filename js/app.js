@@ -23,12 +23,13 @@ window.addEventListener("DOMContentLoaded", function(){
 
     let el = document.getElementById('canvas');
     let c = el.getContext('2d');
-    el.w = 30;
-    el.h = 30;
+    el.w = 50;
+    el.h = 50;
 
     let rectList = [];
     let roomList = [];
-    let minimumSize = 5;
+    let pathList = [];
+    let minimumSize = 10;
     let addRect = function(minX, minY, maxX, maxY) {
         let rect = {minX:minX, minY:minY, maxX:maxX, maxY:maxY, room:null};
         rectList.push(rect);
@@ -40,24 +41,36 @@ window.addEventListener("DOMContentLoaded", function(){
         roomList.push(room);
         return room;
     };
+    let addPath = function(direction, rect0, rect1) {
+        let path = { direction: direction, rect0: rect0, rect1: rect1 };
+        pathList.push(path);
+        return path;
+    };
+    
+    let doneH = false, doneV = false;
     let splitStage = function(parent) {
-        if (
-            (parent.maxY - parent.minY <= minimumSize*2) ||
-            (parent.maxX - parent.minX <= minimumSize*2)
-        ) {
+        if (parent.maxY - parent.minY <= minimumSize*2) parent.doneH = true;
+        if (parent.maxX - parent.minX <= minimumSize*2) parent.doneV = true;
+        
+        if (parent.doneH || parent.doneV) {
             return;
         }
+        
         let child = addRect(parent.minX, parent.minY, parent.maxX, parent.maxY);
-        if (0 === getRandomInt(0,2)) {
+        if (/*0 === getRandomInt(0,2)*/ !parent.doneY) {
             let sp = getRandomInt(parent.minY + minimumSize, parent.maxY - minimumSize);
             parent.maxY = sp;
             child.minY = sp;
+            addPath("h", parent, child);
             splitStage(parent);
-        } else {
+            splitStage(child);
+        } else if (!parent.doneX) {
             let sp = getRandomInt(parent.minX + minimumSize, parent.maxX - minimumSize);
             parent.maxX = sp;
             child.minX = sp;
+            addPath("w", parent, child);
             splitStage(parent);
+            splitStage(child);
         }
     }
 
@@ -75,6 +88,7 @@ window.addEventListener("DOMContentLoaded", function(){
     }
 
     splitStage(addRect(0, 0, el.w, el.h));
+    makeRoom();
 
     let st = [];
     for (let i=0;i<el.h+1;i++) {
@@ -98,15 +112,10 @@ window.addEventListener("DOMContentLoaded", function(){
 
     for (let roomIdx=0;roomIdx<roomList.length;roomIdx++) {
         const room = roomList[roomIdx];
-        for (let i=room.minY;i<room.maxY+1;i++) {
-            for(let j=room.minX;j<room.maxX;j++) {
-                if (0 === i || 0 === j || i === maxY-1 || j === maxX-1) {
-                    st[i][j] = '#000000';
-                } else {
-                    st[i][j] = '#FFFFFF';
-                }
-            }
-        }
+        for (let i = room.minX, j = room.minY; i <= room.maxX; i++) st[i][j] = '#000000';
+        for (let i = room.minX, j = room.maxY; i <= room.maxX; i++) st[i][j] = '#000000';
+        for (let i = room.minX, j = room.minY; j <= room.maxY; j++) st[i][j] = '#000000';
+        for (let i = room.maxX, j = room.minY; j <= room.maxY; j++) st[i][j] = '#000000';
     }
 
     for (let i=0;i<st.length;i++) {
