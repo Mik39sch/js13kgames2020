@@ -4,6 +4,9 @@ const BK_COLOR = rgb(255, 140, 0);
 const FPS = 30;
 const FRAME_TIME = 1 / FPS;;
 
+const MINIMUM_ROOM_SIZE = 30;
+const ROOM_MARGIN = 8;
+
 const COLORS = {
     '0': BK_COLOR,
     '1': rgb(255,255,255),    // 白
