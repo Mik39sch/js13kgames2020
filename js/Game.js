@@ -16,8 +16,8 @@ export default class Game
         this.enemies = {};
 
         for (let i=0;i<5;i++) {
-            this.enemies[i] = new CharacterWriter('enemy', 'down');
-            this.putCharacter(this.enemies[i]);
+//            this.enemies[i] = new CharacterWriter('enemy', 'down');
+         //   this.putCharacter(this.enemies[i]);
         }
 
         this.enemyMove = 5;

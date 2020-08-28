@@ -46,12 +46,12 @@ export default class StageWriter
         ) return;
 
         let child = this.addRect(parent.minX, parent.minY, parent.maxX, parent.maxY);
-        if (!parent.doneY) {
+        if (0 === getRandomInt(0,2)) {
             let sp = getRandomInt(parent.minY + MINIMUM_ROOM_SIZE, parent.maxY - MINIMUM_ROOM_SIZE);
             parent.maxY = sp;
             child.minY = sp;
             this.addPath("h", parent, child);
-        } else if (!parent.doneX) {
+        } else {
             let sp = getRandomInt(parent.minX + MINIMUM_ROOM_SIZE, parent.maxX - MINIMUM_ROOM_SIZE);
             parent.maxX = sp;
             child.minX = sp;
