@@ -9,6 +9,8 @@ export default class CharacterWriter
 
         this.posY = 1;
         this.posX = 1;
+        this.prePosY = null;
+        this.prePosX = null;
 
         this.newDirection = null;
         this.currentDirection = direction;

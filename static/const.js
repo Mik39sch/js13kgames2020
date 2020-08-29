@@ -4,8 +4,8 @@ const BK_COLOR = rgb(255, 140, 0);
 const FPS = 30;
 const FRAME_TIME = 1 / FPS;;
 
-const MINIMUM_ROOM_SIZE = 30;
-const ROOM_MARGIN = 8;
+const MINIMUM_ROOM_SIZE = 50;
+const ROOM_MARGIN = 32;
 
 const COLORS = {
     '0': BK_COLOR,
@@ -41,3 +41,5 @@ const CHARACTER_DATA = {
         ['F','F','2','2','2','F','F'],
     ],
 };
+
+const CHARACTER_SIZE = CHARACTER_DATA.player.length+1;

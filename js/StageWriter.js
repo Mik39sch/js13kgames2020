@@ -2,18 +2,20 @@ export default class StageWriter
 {
     constructor()
     {
-        this.pathWidth = CHARACTER_DATA.player.length+1;
-
-        let size = getRandomInt(100, 200);
-        if (getRandomInt(0,100) % 2 === 0) {
+        let size = getRandomInt(300, 300);
+        if (getRandomInt(0,0) % 2 === 0) {
             this.createMazeAsTorneko(size, size);
         } else {
             this.createMaze(size, size);
         }
-
-
         this.stageHeight = this.mImageData.length * PIXEL_SIZE;
         this.stageWidth = this.mImageData[0].length * PIXEL_SIZE;
+    }
+
+    setImageData(y, x, val) {
+        if (this.mImageData[y] && this.mImageData[y][x]) {
+            this.mImageData[y][x] = val;
+        }
     }
 
     addRect(minX, minY, maxX, maxY) {
@@ -46,12 +48,12 @@ export default class StageWriter
         ) return;
 
         let child = this.addRect(parent.minX, parent.minY, parent.maxX, parent.maxY);
-        if (!parent.doneY) {
+        if (0 === getRandomInt(0,2)) {
             let sp = getRandomInt(parent.minY + MINIMUM_ROOM_SIZE, parent.maxY - MINIMUM_ROOM_SIZE);
             parent.maxY = sp;
             child.minY = sp;
             this.addPath("h", parent, child);
-        } else if (!parent.doneX) {
+        } else {
             let sp = getRandomInt(parent.minX + MINIMUM_ROOM_SIZE, parent.maxX - MINIMUM_ROOM_SIZE);
             parent.maxX = sp;
             child.minX = sp;
@@ -63,14 +65,13 @@ export default class StageWriter
 
     makeRoom()
     {
-        for (let rectIdx=0;rectIdx<this.rectList.length;rectIdx++) {
-            const rect = this.rectList[rectIdx];
+        this.rectList.map(rect => {
             let w = getRandomInt(MINIMUM_ROOM_SIZE, rect.maxX - rect.minX - (ROOM_MARGIN * 2) + 1);
             let h = getRandomInt(MINIMUM_ROOM_SIZE, rect.maxY - rect.minY - (ROOM_MARGIN * 2) + 1);
             let x = getRandomInt(rect.minX + ROOM_MARGIN, rect.maxX - ROOM_MARGIN - w + 1);
             let y = getRandomInt(rect.minY + ROOM_MARGIN, rect.maxY - ROOM_MARGIN - h + 1);
             rect.room = this.addRoom(x, y, x + w, y + h);
-        }
+        });
     }
 
     line(x0, y0, x1, y1)
@@ -79,8 +80,6 @@ export default class StageWriter
             max_x = Math.max(x0, x1),
             min_y = Math.min(y0, y1),
             max_y = Math.max(y0, y1);
-        // g_assert((min_x >= 0) && (max_x < width) && (min_y >= 0) && (max_y < height));
-
         for (let i = min_x; i <= max_x; i++) {
             let index0, index1;
             if ((x0 <= x1) && (y0 >= y1)) {
@@ -92,33 +91,25 @@ export default class StageWriter
             } else if ((x0 <= x1) && (y0 < y1)) {
                 index0 = i, index1 = max_y;
             }
-            this.mImageData[index0][index1] = '0';
-            this.mImageData[index0][index1+1] = '0';
-            this.mImageData[index0][index1+2] = '0';
-            this.mImageData[index0][index1+3] = '0';
-            this.mImageData[index0][index1-1] = '0';
-            this.mImageData[index0][index1-2] = '0';
-            this.mImageData[index0][index1-3] = '0';
+            for (let j=0;j<CHARACTER_SIZE-1;j++) {
+                this.setImageData(index0, index1+j, '0');
+            }
         }
 
-        for (let j = min_y; j <= max_y; j++) {
+        for (let i = min_y; i <= max_y; i++) {
             let index0, index1;
             if ((x0 <= x1) && (y0 >= y1)) {
-                index0 = max_x, index1 = j;
+                index0 = max_x, index1 = i;
             } else if ((x0 > x1) && (y0 > y1)) {
-                index0 = max_x, index1 = j;
+                index0 = max_x, index1 = i;
             } else if ((x0 > x1) && (y0 <= y1)) {
-                index0 = min_x, index1 = j;
+                index0 = min_x, index1 = i;
             } else if ((x0 <= x1) && (y0 < y1)) {
-                index0 = min_x, index1 = j;
+                index0 = min_x, index1 = i;
             }
-            this.mImageData[index0][index1] = '0';
-            this.mImageData[index0+1][index1] = '0';
-            this.mImageData[index0+2][index1] = '0';
-            this.mImageData[index0+3][index1] = '0';
-            this.mImageData[index0-1][index1] = '0';
-            this.mImageData[index0-2][index1] = '0';
-            this.mImageData[index0-3][index1] = '0';
+            for (let j=0;j<CHARACTER_SIZE-1;j++) {
+                this.setImageData(index0+j, index1, '0');
+            }
         }
     }
 
@@ -141,13 +132,13 @@ export default class StageWriter
             const room = this.roomList[roomIdx];
             for (let i = room.minX; i <= room.maxX; i++) {
                 for (let j = room.minY; j <= room.maxY; j++) {
-                    this.mImageData[i][j] = '0';
+                    this.setImageData(i, j, '0');
                 }
             }
-            for (let i = room.minX, j = room.minY; i <= room.maxX; i++) this.mImageData[i][j] = 'A';
-            for (let i = room.minX, j = room.maxY; i <= room.maxX; i++) this.mImageData[i][j] = 'A';
-            for (let i = room.minX, j = room.minY; j <= room.maxY; j++) this.mImageData[i][j] = 'A';
-            for (let i = room.maxX, j = room.minY; j <= room.maxY; j++) this.mImageData[i][j] = 'A';
+            for (let i = room.minX, j = room.minY; i <= room.maxX; i++) this.setImageData(i, j, 'A');;
+            for (let i = room.minX, j = room.maxY; i <= room.maxX; i++) this.setImageData(i, j, 'A');;
+            for (let i = room.minX, j = room.minY; j <= room.maxY; j++) this.setImageData(i, j, 'A');;
+            for (let i = room.maxX, j = room.minY; j <= room.maxY; j++) this.setImageData(i, j, 'A');;
         }
 
         // 通路描画
@@ -156,20 +147,20 @@ export default class StageWriter
             let c0x, c0y, c1x, c1y;
             switch (path.direction) {
                 case 'w':
-                    // g_assert(path.rect0.maxX == path.rect1.minX);
                     c0x = path.rect0.maxX,
-                    c0y = getRandomInt(path.rect0.room.minY + 1, path.rect0.room.maxY),
+                    c0y = getRandomInt(path.rect0.room.minY + 1, path.rect0.room.maxY-CHARACTER_SIZE),
                     c1x = path.rect1.minX,
-                    c1y = getRandomInt(path.rect1.room.minY + 1, path.rect1.room.maxY);
+                    c1y = getRandomInt(path.rect1.room.minY + 1, path.rect1.room.maxY-CHARACTER_SIZE);
+                    // c0y = path.rect0.room.maxY-CHARACTER_SIZE+1;
+                    // c1y = path.rect0.room.maxY-CHARACTER_SIZE+1;
                     this.line(c0x, c0y, c1x, c1y);
                     this.line(path.rect0.room.maxX, c0y, c0x, c0y);
                     this.line(path.rect1.room.minX, c1y, c1x, c1y);
                     break;
                 case 'h':
-                    // g_assert(path.rect0.maxY == path.rect1.minY);
-                    c0x = getRandomInt(path.rect0.room.minX + 1, path.rect0.room.maxX),
+                    c0x = getRandomInt(path.rect0.room.minX + 1, path.rect0.room.maxX-CHARACTER_SIZE),
                     c0y = path.rect0.maxY,
-                    c1x = getRandomInt(path.rect1.room.minX + 1, path.rect1.room.maxX),
+                    c1x = getRandomInt(path.rect1.room.minX + 1, path.rect1.room.maxX-CHARACTER_SIZE),
                     c1y = path.rect1.minY;
                     this.line(c0x, c0y, c1x, c1y);
                     this.line(c0x, path.rect0.room.maxY, c0x, c0y);
@@ -183,8 +174,8 @@ export default class StageWriter
     createMaze(width, height)
     {
         // 奇数である必要がある
-        if (0 !== width % this.pathWidth) width += (this.pathWidth - 1 - width % this.pathWidth);
-        if (0 !== height % this.pathWidth) height += (this.pathWidth - 1 - height % this.pathWidth);
+        if (0 !== width % CHARACTER_SIZE) width += (CHARACTER_SIZE - 1 - width % CHARACTER_SIZE);
+        if (0 !== height % CHARACTER_SIZE) height += (CHARACTER_SIZE - 1 - height % CHARACTER_SIZE);
 
         this.mImageData = [];
         // 外壁
@@ -192,20 +183,20 @@ export default class StageWriter
             this.mImageData[x] = [];
             for(let y=0;y<height+2;y++) {
                 if (0 === x || 0 === y || x === width+1 || y === height+1) {
-                    this.mImageData[x][y] = 'A';
+                    this.setImageData(x, y, 'A');
                 } else {
-                    this.mImageData[x][y] = '0';
+                    this.setImageData(x, y, '0');
                 }
             }
         }
         // 棒倒し
-        for (let x=this.pathWidth;x<width;x+=this.pathWidth) {
-            for(let y=this.pathWidth;y<height;y+=this.pathWidth) {
-                this.mImageData[x][y] = 'A';
+        for (let x=CHARACTER_SIZE;x<width;x+=CHARACTER_SIZE) {
+            for(let y=CHARACTER_SIZE;y<height;y+=CHARACTER_SIZE) {
+                this.setImageData(x, y, 'A');
                 while(true) {
                     let direction;
                     let max = 3;
-                    if (this.pathWidth === y) {
+                    if (CHARACTER_SIZE === y) {
                         max = 2;
                     }
                     direction = getRandomInt(0, max);
@@ -229,8 +220,8 @@ export default class StageWriter
                             break;
                     }
                     if (this.mImageData[wallX][wallY] != 'A') {
-                        this.mImageData[wallX][wallY] = 'A';
-                        for (let i=0;i<this.pathWidth-1;i++) {
+                        this.setImageData(wallX, wallY, 'A');
+                        for (let i=0;i<CHARACTER_SIZE-1;i++) {
                             switch (direction) {
                                 case 0:     // 右
                                     wallX++;
@@ -247,7 +238,7 @@ export default class StageWriter
                                 default:
                                     break;
                             }
-                            this.mImageData[wallX][wallY] = 'A';
+                            this.setImageData(wallX, wallY, 'A');
                         }
                         break;
                     }
