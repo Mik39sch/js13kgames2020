@@ -1,15 +1,29 @@
 export default class StageWriter
 {
-    constructor()
+    constructor(canvasEl)
     {
-        let size = getRandomInt(300, 300);
+        let size = getRandomInt(400, 400);
         if (getRandomInt(0,0) % 2 === 0) {
             this.createMazeAsTorneko(size, size);
         } else {
             this.createMaze(size, size);
         }
-        this.stageHeight = this.mImageData.length * PIXEL_SIZE;
-        this.stageWidth = this.mImageData[0].length * PIXEL_SIZE;
+
+        this.canvasEl = canvasEl;
+        this.canvasEl.height = this.mImageData.length * PIXEL_SIZE;
+        this.canvasEl.width = this.mImageData[0].length * PIXEL_SIZE;
+
+        this.canvas = this.canvasEl.getContext('2d', {alpha: false});
+    }
+
+    draw()
+    {
+        this.mImageData.forEach((frameRow, row) => {
+            frameRow.forEach((color, col) => {
+                this.canvas.fillStyle = COLORS[color];
+                this.canvas.fillRect(col*PIXEL_SIZE, row*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+            });
+        });
     }
 
     setImageData(y, x, val) {
@@ -91,8 +105,9 @@ export default class StageWriter
             } else if ((x0 <= x1) && (y0 < y1)) {
                 index0 = i, index1 = max_y;
             }
-            for (let j=0;j<CHARACTER_SIZE-1;j++) {
+            for (let j=-CHARACTER_SIZE;j<CHARACTER_SIZE;j++) {
                 this.setImageData(index0, index1+j, '0');
+                // this.setImageData(index0, index1, '0');
             }
         }
 
@@ -107,8 +122,9 @@ export default class StageWriter
             } else if ((x0 <= x1) && (y0 < y1)) {
                 index0 = min_x, index1 = i;
             }
-            for (let j=0;j<CHARACTER_SIZE-1;j++) {
+            for (let j=-CHARACTER_SIZE;j<CHARACTER_SIZE*2;j++) {
                 this.setImageData(index0+j, index1, '0');
+                // this.setImageData(index0, index1, '0');
             }
         }
     }
@@ -148,19 +164,17 @@ export default class StageWriter
             switch (path.direction) {
                 case 'w':
                     c0x = path.rect0.maxX,
-                    c0y = getRandomInt(path.rect0.room.minY + 1, path.rect0.room.maxY-CHARACTER_SIZE),
+                    c0y = getRandomInt(path.rect0.room.minY + 1, path.rect0.room.maxY),
                     c1x = path.rect1.minX,
-                    c1y = getRandomInt(path.rect1.room.minY + 1, path.rect1.room.maxY-CHARACTER_SIZE);
-                    // c0y = path.rect0.room.maxY-CHARACTER_SIZE+1;
-                    // c1y = path.rect0.room.maxY-CHARACTER_SIZE+1;
+                    c1y = getRandomInt(path.rect1.room.minY + 1, path.rect1.room.maxY);
                     this.line(c0x, c0y, c1x, c1y);
                     this.line(path.rect0.room.maxX, c0y, c0x, c0y);
                     this.line(path.rect1.room.minX, c1y, c1x, c1y);
                     break;
                 case 'h':
-                    c0x = getRandomInt(path.rect0.room.minX + 1, path.rect0.room.maxX-CHARACTER_SIZE),
+                    c0x = getRandomInt(path.rect0.room.minX + 1, path.rect0.room.maxX),
                     c0y = path.rect0.maxY,
-                    c1x = getRandomInt(path.rect1.room.minX + 1, path.rect1.room.maxX-CHARACTER_SIZE),
+                    c1x = getRandomInt(path.rect1.room.minX + 1, path.rect1.room.maxX),
                     c1y = path.rect1.minY;
                     this.line(c0x, c0y, c1x, c1y);
                     this.line(c0x, path.rect0.room.maxY, c0x, c0y);

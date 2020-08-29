@@ -1,20 +1,17 @@
 import StageWriter from './StageWriter.js';
 import Game from './Game.js';
 
-// メンバ変数定義
-let canvasEl;
-let canvas;
-
-const EL_ID = 'canvas';
-
 window.addEventListener("DOMContentLoaded", function(){
-    canvasEl = document.getElementById(EL_ID);
-    canvas = canvasEl.getContext("2d");
+    let canvasEl = document.getElementById('character');
+    let canvas = canvasEl.getContext("2d");
 
-    let stageWriter = new StageWriter();
+    let stageEl = document.getElementById('stage');
 
-    canvasEl.width = stageWriter.stageWidth;
-    canvasEl.height = stageWriter.stageHeight;
+    let stageWriter = new StageWriter(stageEl);
+    stageWriter.draw();
+
+    canvasEl.width = stageWriter.canvasEl.width;
+    canvasEl.height = stageWriter.canvasEl.height;
 
     let game = new Game(canvas, stageWriter);
     window.requestAnimationFrame(game.playing.bind(game));

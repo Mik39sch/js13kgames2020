@@ -8,30 +8,20 @@ export default class Game
         this.prevTimestamp = 0;
 
         this.stage = stage;
-        this.currentFrame = JSON.parse(JSON.stringify(this.stage.mImageData));
         this.stageFrame = {};
         this.characterFrame = {};
         this.preCharacterFrame = {};
-        this.currentFrame.forEach((frameRow, row) => {
-            frameRow.forEach((color, col) => {
-                if (!this.stageFrame[color]) {
-                    this.stageFrame[color] = [];
-                }
-                this.stageFrame[color].push([row, col]);
-                this.mCanvas.fillStyle = COLORS[color];
-                this.mCanvas.fillRect(col*PIXEL_SIZE, row*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
-            });
-        });
+        this.hit = false;
 
         this.player = new CharacterWriter('player', 'top');
         this.putCharacter(this.player);
 
         this.enemies = {};
 
-        // for (let i=0;i<5;i++) {
-        //     this.enemies[i] = new CharacterWriter('enemy', 'down');
-        //     this.putCharacter(this.enemies[i]);
-        // }
+        for (let i=0;i<5;i++) {
+            this.enemies[i] = new CharacterWriter('enemy', 'down');
+            this.putCharacter(this.enemies[i]);
+        }
 
         this.enemyMove = 5;
 
@@ -42,33 +32,32 @@ export default class Game
     playing(timestamp)
     {
         const elapsed = (timestamp - this.prevTimestamp) / 1000;
-        if (elapsed <= FRAME_TIME){
+        if (elapsed <= FRAME_TIME && !this.hit){
             window.requestAnimationFrame(this.playing.bind(this));
             return;
         }
 
         // プレイヤーの動作
-        this.currentFrame = JSON.parse(JSON.stringify(this.stage.mImageData));
         this.characterFrame = {};
         this.preCharacterFrame = {};
-        this.moveCharacter(this.player);
+        this.moveCharacter(this.player, this.hit);
 
-        // // 敵の動作
-        // for (let i=0; i<Object.keys(this.enemies).length; i++) {
-        //     this.enemies[i].newDirection = null;
-        //     if (this.enemyMove === 0) {
-        //         let constDirection = [null, 'top', 'down', 'right', 'left'];
-        //         this.enemies[i].newDirection = constDirection[getRandomInt(0, 4)];
-        //     }
-        //     this.moveCharacter(this.enemies[i]);
-        // }
+        // 敵の動作
+        for (let i=0; i<Object.keys(this.enemies).length; i++) {
+            this.enemies[i].newDirection = null;
+            if (this.enemyMove === 0) {
+                let constDirection = [null, 'top', 'down', 'right', 'left'];
+                this.enemies[i].newDirection = constDirection[getRandomInt(0, 4)];
+            }
+            this.moveCharacter(this.enemies[i], false);
+        }
 
-        // if (this.enemyMove === 0) {
-        //     this.enemyMove = 5;
-        // } else {
-        //     this.enemyMove--;
-        // }
-        // this.checkHitEnemies();
+        if (this.enemyMove === 0) {
+            this.enemyMove = 5;
+        } else {
+            this.enemyMove--;
+        }
+        this.checkHitEnemies();
 
         this.draw();
         this.prevTimestamp = timestamp;
@@ -116,8 +105,8 @@ export default class Game
 
     putCharacter(character)
     {
-        let minX = 0, maxX = 100,
-            minY = 0, maxY = 100;
+        let minX = 0, maxX = this.stage.mImageData.length,
+            minY = 0, maxY = this.stage.mImageData.length;
         character.posY = getRandomInt(minY, maxY);
         character.posX = getRandomInt(minX, maxX);
         if (this.checkHitWall(character)) {
@@ -125,10 +114,17 @@ export default class Game
         }
     }
 
-    moveCharacter(character)
+    moveCharacter(character, hit)
     {
-        let prePosX = character.posX;
-        let prePosY = character.posY;
+        if (!hit) {
+            character.prePosX = character.posX;
+            character.prePosY = character.posY;
+            this.hit = false;
+        }
+        if (hit) {
+            console.log('prev:'+character.prePosX+','+character.prePosY);
+            console.log('now:'+character.posX+','+character.posY);
+        }
         if (null !== character.newDirection) {
             if (character.currentDirection !== character.newDirection) {
                 const turnCount = character.directionConst[character.currentDirection][character.newDirection];
@@ -151,35 +147,33 @@ export default class Game
             }
 
             if (this.checkHitWall(character)) {
-                character.posY = prePosY;
-                character.posX = prePosX;
+                character.posY = character.prePosY;
+                character.posX = character.prePosX;
             }
         }
         for (let row=0;row<character.mImageData.length; row++) {
             const currentPosY = character.posY + row;
-            if (undefined === this.currentFrame[currentPosY]) {
+            if (undefined === this.stage.mImageData[currentPosY]) {
                 continue;
             }
             for (let col=0; col<character.mImageData[row].length; col++) {
                 const currentPosX = character.posX + col;
-                if (undefined === this.currentFrame[currentPosY][currentPosX]) {
+                if (undefined === this.stage.mImageData[currentPosY][currentPosX]) {
                     continue;
                 }
                 let color = character.mImageData[row][col];
                 if ('F' === color) {
-                    color = this.currentFrame[currentPosY][currentPosX];
+                    color = this.stage.mImageData[currentPosY][currentPosX];
                 }
                 if (!this.characterFrame[color]) {
                     this.characterFrame[color] = [];
                 }
                 this.characterFrame[color].push([currentPosY, currentPosX]);
-
-                let stageColor = this.currentFrame[prePosY+row][prePosX+col];
+                let stageColor = this.stage.mImageData[character.prePosY+row][character.prePosX+col];
                 if (!this.preCharacterFrame[stageColor]) {
                     this.preCharacterFrame[stageColor] = [];
                 }
-                this.preCharacterFrame[stageColor].push([prePosY+row, prePosX+col]);
-                this.currentFrame[currentPosY][currentPosX] = color;
+                this.preCharacterFrame[stageColor].push([character.prePosY+row, character.prePosX+col]);
             }
         }
     }
@@ -188,17 +182,17 @@ export default class Game
     {
         for (let row=0;row<character.mImageData.length; row++) {
             const currentPosY = character.posY + row;
-            if (undefined === this.currentFrame[currentPosY]) {
+            if (undefined === this.stage.mImageData[currentPosY]) {
                 continue;
             }
             for (let col=0; col<character.mImageData[row].length; col++) {
                 const currentPosX = character.posX + col;
-                if (undefined === this.currentFrame[currentPosY][currentPosX]) {
+                if (undefined === this.stage.mImageData[currentPosY][currentPosX]) {
                     continue;
                 }
                 if (
                     'F' !== character.mImageData[row][col] &&
-                    'A' === this.currentFrame[currentPosY][currentPosX]
+                    'A' === this.stage.mImageData[currentPosY][currentPosX]
                 ) {
                     return true;
                 }
@@ -222,6 +216,9 @@ export default class Game
                             ) {
                                 // alert('hit!');
                                 this.player.newDirection = null;
+                                this.player.prePosY = this.player.posY;
+                                this.player.prePosX = this.player.posX;
+                                this.hit = true;
                                 this.putCharacter(this.player);
                                 return true;
                             }
@@ -235,30 +232,18 @@ export default class Game
 
     draw()
     {
-        // Object.keys(this.stageFrame).forEach(color => {
-        //     this.mCanvas.fillStyle = COLORS[color];
-        //     this.stageFrame[color].forEach(pos => {
-        //         this.mCanvas.fillRect(pos[1]*PIXEL_SIZE, pos[0]*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
-        //     })
-        // });
-
         Object.keys(this.preCharacterFrame).forEach(color => {
             this.mCanvas.fillStyle = COLORS[color];
             this.preCharacterFrame[color].forEach(pos => {
                 this.mCanvas.fillRect(pos[1]*PIXEL_SIZE, pos[0]*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
             });
         });
+
         Object.keys(this.characterFrame).forEach(color => {
             this.mCanvas.fillStyle = COLORS[color];
             this.characterFrame[color].forEach(pos => {
                 this.mCanvas.fillRect(pos[1]*PIXEL_SIZE, pos[0]*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
             });
         });
-        // this.currentFrame.forEach((frameRow, row) => {
-        //     frameRow.forEach((frameCell, col) => {
-        //         this.mCanvas.fillStyle = COLORS[frameCell];
-        //         this.mCanvas.fillRect(col*PIXEL_SIZE, row*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
-        //     });
-        // });
     }
 }
