@@ -64,7 +64,7 @@ export default class Game
             if (!this.checkHitWall(hole)) this.holeList.push(hole);
         }
 
-        this.draw();
+        this.drawMain();
         this.prevTimestamp = timestamp;
         window.requestAnimationFrame(this.playing.bind(this));
     }
@@ -183,26 +183,12 @@ export default class Game
         return false;
     }
 
-    draw()
+    drawMain()
     {
-        Object.keys(COLORS).forEach(color => {
-            this.mCanvas.beginPath();
-            this.mCanvas.fillStyle = COLORS[color];
-            const preFrame = this.preFrames[color];
-            if (preFrame) {
-                for (let i=0;i<preFrame.length;i++) {
-                    let pos = preFrame[i];
-                    this.mCanvas.fillRect(pos[1]*PIXEL_SIZE, pos[0]*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
-                }
-            }
-            const newFrame = this.newFrames[color];
-            if (newFrame) {
-                for (let i=0;i<newFrame.length;i++) {
-                    let pos = newFrame[i];
-                    this.mCanvas.fillRect(pos[1]*PIXEL_SIZE, pos[0]*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
-                }
-            }
-        });
+        for (const [key, enemy] of Object.entries(this.enemies)) {
+            this.drawCharacter(enemy);
+        }
+        this.drawCharacter(this.player);
 
         this.holeList.forEach(hole => {
             if (hole.put) {
@@ -221,6 +207,46 @@ export default class Game
                 }
             }
         });
+    }
+
+    drawCharacter(character)
+    {
+        for (let row=0;row<character.mImageData.length; row++) {
+            const posY = character.prePosY + row;
+            if (undefined === this.stage.mImageData[posY]) {
+                continue;
+            }
+            for (let col=0; col<character.mImageData[row].length; col++) {
+                const posX = character.prePosX + col;
+                if (undefined === this.stage.mImageData[posY][posX]) {
+                    continue;
+                }
+                let color = 'A';
+                if (this.stage.mImageData[posY] && this.stage.mImageData[posY][posX]) {
+                    color = this.stage.mImageData[posY][posX];
+                }
+                this.mCanvas.fillStyle = COLORS[color];
+                this.mCanvas.fillRect(posX*PIXEL_SIZE, posY*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+            }
+        }
+        for (let row=0;row<character.mImageData.length; row++) {
+            const posY = character.posY + row;
+            if (undefined === this.stage.mImageData[posY]) {
+                continue;
+            }
+            for (let col=0; col<character.mImageData[row].length; col++) {
+                const posX = character.posX + col;
+                if (undefined === this.stage.mImageData[posY][posX]) {
+                    continue;
+                }
+                let color = character.mImageData[row][col];
+                if ('F' === color) {
+                    color = this.stage.mImageData[posY][posX];
+                }
+                this.mCanvas.fillStyle = COLORS[color];
+                this.mCanvas.fillRect(posX*PIXEL_SIZE, posY*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+            }
+        }
     }
 
     keyDown(e)
