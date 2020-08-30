@@ -2,10 +2,11 @@ export default class CharacterWriter
 {
     constructor(index, direction)
     {
+        this.index = index;
         if (!CHARACTER_DATA[index]) {
-            index = 'player';
+            this.index = 'player';
         }
-        this.mImageData = CHARACTER_DATA[index];
+        this.mImageData = JSON.parse(JSON.stringify(CHARACTER_DATA[this.index][direction]));
 
         this.posY = 1;
         this.posX = 1;
@@ -29,12 +30,37 @@ export default class CharacterWriter
 
     turn()
     {
-        let turnImg = JSON.parse(JSON.stringify(this.mImageData));;
-        for (let row = 0; row < this.mImageData.length; row++) {
-            for (let col = 0; col < this.mImageData[row].length; col++) {
-                turnImg[row][col] = this.mImageData[this.mImageData.length-col-1][row];
-            }
+        this.mImageData = JSON.parse(JSON.stringify(CHARACTER_DATA[this.index][this.currentDirection]));
+    }
+
+    dig()
+    {
+        let hole = [
+            ['F', '3', '3', 'F'],
+            ['3', '3', '3', '3'],
+            ['3', '3', '3', '3'],
+            ['F', '3', '3', 'F'],
+        ];
+        let posY, posX;
+        switch(this.currentDirection) {
+            case 'top':
+                posY = this.posY - hole.length;
+                posX = this.posX+ 1;
+                break;
+            case 'right':
+                posY = this.posY + 1;
+                posX = this.posX + CHARACTER_SIZE;
+                break;
+            case 'down':
+                posY = this.posY + CHARACTER_SIZE;
+                posX = this.posX + 1;
+                break;
+            case 'left':
+                posY = this.posY + 1;
+                posX = this.posX - hole.length;
+                break;
         }
-        this.mImageData = turnImg;
+
+        return {posY: posY, posX:posX, mImageData: hole, put: false};
     }
 }

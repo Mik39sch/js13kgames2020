@@ -6,6 +6,8 @@ function rgb(r,g,b)
     return "#" + c;
 }
 
-function getRandomInt(min, max) {
+function getRandomInt(num0, num1) {
+    let min = Math.min(num0, num1);
+    let max = Math.max(num0, num1);
     return Math.floor(Math.random() * (max - min) + min);
 }

@@ -8,9 +8,9 @@ export default class Game
         this.prevTimestamp = 0;
 
         this.stage = stage;
-        this.stageFrame = {};
-        this.characterFrame = {};
-        this.preCharacterFrame = {};
+        this.newFrames = {};
+        this.preFrames = {};
+        this.holeList = [];
         this.hit = false;
 
         this.player = new CharacterWriter('player', 'top');
@@ -38,8 +38,8 @@ export default class Game
         }
 
         // プレイヤーの動作
-        this.characterFrame = {};
-        this.preCharacterFrame = {};
+        this.newFrames = {};
+        this.preFrames = {};
         this.moveCharacter(this.player, this.hit);
 
         // 敵の動作
@@ -57,50 +57,16 @@ export default class Game
         } else {
             this.enemyMove--;
         }
-        this.checkHitEnemies();
+
+        if (this.player.action) {
+            let hole = this.player.dig();
+            this.player.action = false;
+            if (!this.checkHitWall(hole)) this.holeList.push(hole);
+        }
 
         this.draw();
         this.prevTimestamp = timestamp;
         window.requestAnimationFrame(this.playing.bind(this));
-    }
-
-    keyDown(e)
-    {
-        switch(e.keyCode) {
-            case 37:    // arrowLeft
-            case 65:    // A
-                this.player.newDirection = 'left';
-                break;
-            case 39:    // arrowRight
-            case 68:    // D
-                this.player.newDirection = 'right';
-                break;
-            // case 32:    // space
-            case 38:    // arrowUp
-            case 87:    // W
-                this.player.newDirection = 'top';
-                break;
-            case 40:    // arrowDown
-            case 83:    // S
-                this.player.newDirection = 'down';
-                break;
-        }
-    }
-
-    keyUp(e)
-    {
-        switch(e.keyCode) {
-            case 37:    // arrowLeft
-            case 65:    // A
-            case 39:    // arrowRight
-            case 68:    // D
-            case 38:    // arrowUp
-            case 87:    // W
-            case 40:    // arrowDown
-            case 83:    // S
-                this.player.newDirection = null;
-                break;
-        }
     }
 
     putCharacter(character)
@@ -127,9 +93,8 @@ export default class Game
         }
         if (null !== character.newDirection) {
             if (character.currentDirection !== character.newDirection) {
-                const turnCount = character.directionConst[character.currentDirection][character.newDirection];
                 character.currentDirection = character.newDirection;
-                if (turnCount > 0) for (let i=0; i<turnCount;i++) character.turn();
+                character.turn();
             }
             switch (character.newDirection) {
                 case 'top':
@@ -165,15 +130,18 @@ export default class Game
                 if ('F' === color) {
                     color = this.stage.mImageData[currentPosY][currentPosX];
                 }
-                if (!this.characterFrame[color]) {
-                    this.characterFrame[color] = [];
+                if (!this.newFrames[color]) {
+                    this.newFrames[color] = [];
                 }
-                this.characterFrame[color].push([currentPosY, currentPosX]);
-                let stageColor = this.stage.mImageData[character.prePosY+row][character.prePosX+col];
-                if (!this.preCharacterFrame[stageColor]) {
-                    this.preCharacterFrame[stageColor] = [];
+                this.newFrames[color].push([currentPosY, currentPosX]);
+                let stageColor = 'A';
+                if (this.stage.mImageData[character.prePosY+row] && this.stage.mImageData[character.prePosY+row][character.prePosX+col]) {
+                    stageColor = this.stage.mImageData[character.prePosY+row][character.prePosX+col];
                 }
-                this.preCharacterFrame[stageColor].push([character.prePosY+row, character.prePosX+col]);
+                if (!this.preFrames[stageColor]) {
+                    this.preFrames[stageColor] = [];
+                }
+                this.preFrames[stageColor].push([character.prePosY+row, character.prePosX+col]);
             }
         }
     }
@@ -196,30 +164,15 @@ export default class Game
                 ) {
                     return true;
                 }
-            }
-        }
-        return false;
-    }
 
-    checkHitEnemies()
-    {
-        for (let row=0;row<this.player.mImageData.length; row++) {
-            for (let col=0; col<this.player.mImageData[row].length; col++) {
-                for (let enemyCount=0;enemyCount<Object.keys(this.enemies).length;enemyCount++) {
-                    for (let eRow=0;eRow<this.enemies[enemyCount].mImageData.length; eRow++) {
-                        for (let eCol=0; eCol<this.enemies[enemyCount].mImageData[eRow].length; eCol++) {
+                for (let holeCount=0;holeCount<this.holeList.length;holeCount++) {
+                    const hole = this.holeList[holeCount];
+                    for (let hRow=0;hRow<hole.mImageData.length; hRow++) {
+                        for (let hCol=0; hCol<hole.mImageData[hRow].length; hCol++) {
                             if (
-                                'F' !== this.player.mImageData[row][col] &&
-                                'F' !== this.enemies[enemyCount].mImageData[row][col] &&
-                                this.player.posY + row === this.enemies[enemyCount].posY + eRow &&
-                                this.player.posX + col === this.enemies[enemyCount].posX + eCol
+                                this.player.posY + row === hole.posY + hRow &&
+                                this.player.posX + col === hole.posX + hCol
                             ) {
-                                // alert('hit!');
-                                this.player.newDirection = null;
-                                this.player.prePosY = this.player.posY;
-                                this.player.prePosX = this.player.posX;
-                                this.hit = true;
-                                this.putCharacter(this.player);
                                 return true;
                             }
                         }
@@ -232,18 +185,82 @@ export default class Game
 
     draw()
     {
-        Object.keys(this.preCharacterFrame).forEach(color => {
+        Object.keys(COLORS).forEach(color => {
+            this.mCanvas.beginPath();
             this.mCanvas.fillStyle = COLORS[color];
-            this.preCharacterFrame[color].forEach(pos => {
-                this.mCanvas.fillRect(pos[1]*PIXEL_SIZE, pos[0]*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
-            });
+            const preFrame = this.preFrames[color];
+            if (preFrame) {
+                for (let i=0;i<preFrame.length;i++) {
+                    let pos = preFrame[i];
+                    this.mCanvas.fillRect(pos[1]*PIXEL_SIZE, pos[0]*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+                }
+            }
+            const newFrame = this.newFrames[color];
+            if (newFrame) {
+                for (let i=0;i<newFrame.length;i++) {
+                    let pos = newFrame[i];
+                    this.mCanvas.fillRect(pos[1]*PIXEL_SIZE, pos[0]*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+                }
+            }
         });
 
-        Object.keys(this.characterFrame).forEach(color => {
-            this.mCanvas.fillStyle = COLORS[color];
-            this.characterFrame[color].forEach(pos => {
-                this.mCanvas.fillRect(pos[1]*PIXEL_SIZE, pos[0]*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
-            });
+        this.holeList.forEach(hole => {
+            if (hole.put) {
+                return;
+            }
+            const img = hole.mImageData;
+            for (let row=0;row<img.length;row++) {
+                for (let col=0;col<img[row].length;col++) {
+                    let color = img[row][col];
+                    if ('F' === color) {
+                        color = this.stage.mImageData[hole.posY+row][hole.posX+col];
+                    }
+                    this.mCanvas.fillStyle = COLORS[color];
+                    this.mCanvas.fillRect((hole.posX+col)*PIXEL_SIZE , (hole.posY+row)*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+                    hole.put = true;
+                }
+            }
         });
     }
+
+    keyDown(e)
+    {
+        switch(e.keyCode) {
+            case 37:    // arrowLeft
+            case 65:    // A
+                this.player.newDirection = 'left';
+                break;
+            case 39:    // arrowRight
+            case 68:    // D
+                this.player.newDirection = 'right';
+                break;
+            case 38:    // arrowUp
+            case 87:    // W
+                this.player.newDirection = 'top';
+                break;
+            case 40:    // arrowDown
+            case 83:    // S
+                this.player.newDirection = 'down';
+                break;
+            case 32:    // space
+                this.player.action = true;
+        }
+    }
+
+    keyUp(e)
+    {
+        switch(e.keyCode) {
+            case 37:    // arrowLeft
+            case 65:    // A
+            case 39:    // arrowRight
+            case 68:    // D
+            case 38:    // arrowUp
+            case 87:    // W
+            case 40:    // arrowDown
+            case 83:    // S
+                this.player.newDirection = null;
+                break;
+        }
+    }
+
 }
