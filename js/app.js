@@ -13,6 +13,9 @@ window.addEventListener("DOMContentLoaded", function(){
     canvasEl.width = stageWriter.canvasEl.width;
     canvasEl.height = stageWriter.canvasEl.height;
 
+    let wrapperEl = document.getElementById('wrapper');
+    wrapperEl.style.height = `${stageWriter.canvasEl.height}px`;
+
     let game = new Game(canvas, stageWriter);
     window.requestAnimationFrame(game.playing.bind(game));
 });

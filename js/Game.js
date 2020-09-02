@@ -98,10 +98,6 @@ export default class Game
             character.prePosY = character.posY;
             this.hit = false;
         }
-        if (hit) {
-            console.log('prev:'+character.prePosX+','+character.prePosY);
-            console.log('now:'+character.posX+','+character.posY);
-        }
         if (null !== character.newDirection) {
             if (character.currentDirection !== character.newDirection) {
                 character.currentDirection = character.newDirection;
