@@ -6,7 +6,7 @@ export default class CharacterWriter
         if (!CHARACTER_DATA[index]) {
             this.index = 'player';
         }
-        this.mImageData = JSON.parse(JSON.stringify(CHARACTER_DATA[this.index][direction]));
+        this.img = JSON.parse(JSON.stringify(CHARACTER_DATA[this.index][direction]));
 
         this.posY = 1;
         this.posX = 1;
@@ -30,21 +30,15 @@ export default class CharacterWriter
 
     turn()
     {
-        this.mImageData = JSON.parse(JSON.stringify(CHARACTER_DATA[this.index][this.currentDirection]));
+        this.img = JSON.parse(JSON.stringify(CHARACTER_DATA[this.index][this.currentDirection]));
     }
 
     dig()
     {
-        let hole = [
-            ['F', '3', '3', 'F'],
-            ['3', '3', '3', '3'],
-            ['3', '3', '3', '3'],
-            ['F', '3', '3', 'F'],
-        ];
         let posY, posX;
         switch(this.currentDirection) {
             case 'top':
-                posY = this.posY - hole.length;
+                posY = this.posY - HOLE_IMG.length;
                 posX = this.posX+ 1;
                 break;
             case 'right':
@@ -57,10 +51,10 @@ export default class CharacterWriter
                 break;
             case 'left':
                 posY = this.posY + 1;
-                posX = this.posX - hole.length;
+                posX = this.posX - HOLE_IMG.length;
                 break;
         }
 
-        return {posY: posY, posX:posX, mImageData: hole, put: false};
+        return {posY: posY, posX:posX, img: HOLE_IMG, put: false, clear: false, thing: null, count: 50};
     }
 }

@@ -7,22 +7,22 @@ export default class StageWriter
         this.pathList = [];
 
         this.frameSize = getRandomInt(200, 400);
-        if (getRandomInt(0,2) % 2 !== 0) {
+        if (getRandomInt(1,1) % 2 !== 0) {
             this.createMazeAsTorneko(this.frameSize, this.frameSize);
         } else {
             this.createMaze(this.frameSize, this.frameSize);
         }
 
         this.canvasEl = canvasEl;
-        this.canvasEl.height = this.mImageData.length * PIXEL_SIZE;
-        this.canvasEl.width = this.mImageData[0].length * PIXEL_SIZE;
+        this.canvasEl.height = this.img.length * PIXEL_SIZE;
+        this.canvasEl.width = this.img[0].length * PIXEL_SIZE;
 
         this.canvas = this.canvasEl.getContext('2d', {alpha: false});
     }
 
     draw()
     {
-        this.mImageData.forEach((frameRow, row) => {
+        this.img.forEach((frameRow, row) => {
             frameRow.forEach((color, col) => {
                 this.canvas.fillStyle = COLORS[color];
                 this.canvas.fillRect(col*PIXEL_SIZE, row*PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
@@ -31,8 +31,8 @@ export default class StageWriter
     }
 
     setImageData(y, x, val) {
-        if (this.mImageData[y] && this.mImageData[y][x]) {
-            this.mImageData[y][x] = val;
+        if (this.img[y] && this.img[y][x]) {
+            this.img[y][x] = val;
         }
     }
 
@@ -162,13 +162,13 @@ export default class StageWriter
         this.makeRoom();
 
         // 全体の枠組み
-        this.mImageData = [];
+        this.img = [];
         for (let i=0;i<height+1;i++) {
             let tmp = [];
             for(let j=0;j<width+1;j++) {
                 tmp.push('A');
             }
-            this.mImageData.push(tmp);
+            this.img.push(tmp);
         }
 
         if (DEBUG) {
@@ -271,9 +271,9 @@ export default class StageWriter
         if (0 !== width % CHARACTER_SIZE) width += (CHARACTER_SIZE - width % CHARACTER_SIZE);
         if (0 !== height % CHARACTER_SIZE) height += (CHARACTER_SIZE - height % CHARACTER_SIZE);
 
-        this.mImageData = [];
+        this.img = [];
         // 外壁
-        this.mImageData = [];
+        this.img = [];
         for (let y=0;y<height+1;y++) {
             let tmp = [];
             for(let x=0;x<width+1;x++) {
@@ -283,7 +283,7 @@ export default class StageWriter
                     tmp.push('0');
                 }
             }
-            this.mImageData.push(tmp);
+            this.img.push(tmp);
         }
 
         // 棒倒し
