@@ -22,6 +22,26 @@ export default class Game
 
         window.addEventListener("keydown", this.keyDown.bind(this));
         window.addEventListener("keyup", this.keyUp.bind(this));
+        
+        const upbtn = document.getElementById("up");
+        const downbtn = document.getElementById("down");
+        const leftbtn = document.getElementById("left");
+        const rightbtn = document.getElementById("right");
+        const spacebtn = document.getElementById("space");
+        let self = this;
+        upbtn.addEventListener("touchstart", function(e){self.player.newDirection = 'top';});
+        upbtn.addEventListener("touchend", function(e){self.player.newDirection = null;});
+        
+        downbtn.addEventListener("touchstart", function(e) { self.player.newDirection = 'down'; });
+        downbtn.addEventListener("touchend", function(e) { self.player.newDirection = null; });
+        
+        leftbtn.addEventListener("touchstart", function(e) { self.player.newDirection = 'left'; });
+        leftbtn.addEventListener("touchend", function(e) { self.player.newDirection = null; });
+        
+        rightbtn.addEventListener("touchstart", function(e) { self.player.newDirection = 'right'; });
+        rightbtn.addEventListener("touchend", function(e) { self.player.newDirection = null; });
+        
+        spacebtn.addEventListener("touchstart", function(e) { self.player.action = true; });
     }
 
     playing(timestamp)

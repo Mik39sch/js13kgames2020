@@ -6,7 +6,7 @@ export default class StageWriter
         this.roomList = [];
         this.pathList = [];
 
-        this.frameSize = getRandomInt(200, 400);
+        this.frameSize = getRandomInt(300, 300);
         if (getRandomInt(1,1) % 2 !== 0) {
             this.createMazeAsTorneko(this.frameSize, this.frameSize);
         } else {

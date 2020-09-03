@@ -10,6 +10,17 @@
                 top: 0;
                 left: 0;
             }
+            .button {
+                width: 100px;
+                height: 50px;
+                border: 1px solid #999;
+            }
+            .float{
+                float: left;
+            }
+            .clear{
+                clear: both;
+            }
         </style>
     </head>
     <body>
@@ -19,6 +30,13 @@
         </div>
         <div>
             Not Found: xxx, Found Money:xxx, Found Zombie: xxx
+        </div>
+        <div id="controller">
+            <div id="up" class="button">UP</div>
+            <div id="down" class="button">DOWN</div>
+            <div id="left" class="button float">LEFT</div>
+            <div id="right" class="button float">RIGHT</div>
+            <div id="space" class="button clear">DIG</div>
         </div>
         <script src="static/common.js"></script>
         <script src="static/const.js"></script>
