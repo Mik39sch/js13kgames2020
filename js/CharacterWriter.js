@@ -12,6 +12,8 @@ export default class CharacterWriter
         this.posX = 1;
         this.prePosY = null;
         this.prePosX = null;
+        this.hit = false;
+        this.equipment = ['shovel'];
 
         this.newDirection = null;
         this.currentDirection = direction;

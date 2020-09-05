@@ -1,47 +1,78 @@
 import CharacterWriter from './CharacterWriter.js';
+import StageWriter from './StageWriter.js';
 
 export default class Game
 {
-    constructor(inCanvas, stage)
+    constructor(canvas, canvasEl)
     {
-        this.mCanvas = inCanvas;
+        this.mCanvas = canvas;
         this.prevTimestamp = 0;
 
-        this.stage = stage;
+        this.stage = new StageWriter(canvasEl);
+        this.notFoundCount = 0;
+        this.coinCount = 0;
+        this.zombieCount = 0;
+        this.floor = 1;
+        this.answer = null;
+        this.message = [
+            "I am a treasure hunter. I heard a rumor that there was some treasure in this cave.",
+            "But I'm lost!! I need to find exit...",
+            "While i'll researching exit, I research treasure also :)",
+        ];
+
+        window.addEventListener("keydown", this.keyDown.bind(this));
+        window.addEventListener("keyup", this.keyUp.bind(this));
+
+        if (DEBUG) {
+            document.getElementById('controller').style.display = 'block';
+            const upButton = document.getElementById("up");
+            const downButton = document.getElementById("down");
+            const leftButton = document.getElementById("left");
+            const rightButton = document.getElementById("right");
+            const spaceButton = document.getElementById("space");
+            let self = this;
+            upButton.addEventListener("touchstart", function(e){self.player.newDirection = 'top';});
+            upButton.addEventListener("touchend", function(e){self.player.newDirection = null;});
+
+            downButton.addEventListener("touchstart", function(e) { self.player.newDirection = 'down'; });
+            downButton.addEventListener("touchend", function(e) { self.player.newDirection = null; });
+
+            leftButton.addEventListener("touchstart", function(e) { self.player.newDirection = 'left'; });
+            leftButton.addEventListener("touchend", function(e) { self.player.newDirection = null; });
+
+            rightButton.addEventListener("touchstart", function(e) { self.player.newDirection = 'right'; });
+            rightButton.addEventListener("touchend", function(e) { self.player.newDirection = null; });
+
+            spaceButton.addEventListener("touchstart", function(e) { self.player.action = true; });
+        }
+        this.start();
+    }
+
+    start()
+    {
+        if (this.stop) {
+            this.mCanvas.clearRect(0, 0, this.stage.canvasEl.width, this.stage.canvasEl.height);
+            this.stage.createMazeAsTorneko(this.stage.width, this.stage.height);
+            this.mCanvas.beginPath();
+        }
+
+        this.putExit();
+        this.stage.draw();
         this.holeList = {};
         this.thingList = {};
         this.hit = false;
         this.baseStage = JSON.parse(JSON.stringify(this.stage.img));
         this.currentStage = JSON.parse(JSON.stringify(this.baseStage));
 
+
         this.player = new CharacterWriter('player', 'top');
         this.putCharacter(this.player);
 
         this.enemies = {};
         this.enemyMove = 5;
+        this.stop = false;
 
-        window.addEventListener("keydown", this.keyDown.bind(this));
-        window.addEventListener("keyup", this.keyUp.bind(this));
-        
-        const upbtn = document.getElementById("up");
-        const downbtn = document.getElementById("down");
-        const leftbtn = document.getElementById("left");
-        const rightbtn = document.getElementById("right");
-        const spacebtn = document.getElementById("space");
-        let self = this;
-        upbtn.addEventListener("touchstart", function(e){self.player.newDirection = 'top';});
-        upbtn.addEventListener("touchend", function(e){self.player.newDirection = null;});
-        
-        downbtn.addEventListener("touchstart", function(e) { self.player.newDirection = 'down'; });
-        downbtn.addEventListener("touchend", function(e) { self.player.newDirection = null; });
-        
-        leftbtn.addEventListener("touchstart", function(e) { self.player.newDirection = 'left'; });
-        leftbtn.addEventListener("touchend", function(e) { self.player.newDirection = null; });
-        
-        rightbtn.addEventListener("touchstart", function(e) { self.player.newDirection = 'right'; });
-        rightbtn.addEventListener("touchend", function(e) { self.player.newDirection = null; });
-        
-        spacebtn.addEventListener("touchstart", function(e) { self.player.action = true; });
+        window.requestAnimationFrame(this.playing.bind(this));
     }
 
     playing(timestamp)
@@ -52,12 +83,21 @@ export default class Game
             return;
         }
 
+        if (this.stop) {
+            return;
+        }
+
         this.currentStage = JSON.parse(JSON.stringify(this.baseStage));
 
         this.newFrames = {};
         this.preFrames = {};
-        // プレイヤーの動作
-        this.moveCharacter(this.player, this.hit);
+
+        if (!this.player.hit) {
+            // プレイヤーの動作
+            this.moveCharacter(this.player, this.hit);
+        } else {
+            this.player.hit = false;
+        }
 
         // 敵の動作
         for (const [key, enemy] of Object.entries(this.enemies)) {
@@ -67,6 +107,7 @@ export default class Game
             }
 
             if (this.holeList[enemy.holeKey]) {
+                this.zombieCount++;
                 this.holeList[enemy.holeKey].clear = true;
             }
             enemy.img.newDirection = null;
@@ -86,8 +127,25 @@ export default class Game
         if (this.player.action) {
             let hole = this.player.dig();
             this.player.action = false;
-            if (!this.checkHitWall(hole)) this.holeList[getRandomInt(0,999)] = hole;
+            let result = true;
+            result = !this.checkHitWall(hole);
+            for (let i=0;i<hole.img.length;i++) {
+                for (let j=0;j<hole.img[0].length;j++) {
+                    result = !this.checkHitExit(i, j, hole);
+                    if (!result) {
+                        break;
+                    }
+                }
+                if (!result) {
+                    break;
+                }
+            }
+            if (result) {
+                this.holeList[getRandomInt(0,999)] = hole;
+            }
         }
+
+        this.checkHit();
 
         this.drawMain();
         this.prevTimestamp = timestamp;
@@ -97,7 +155,7 @@ export default class Game
     putCharacter(character, posX, posY)
     {
         if (!posX) {
-            let minX = 0, maxX = this.stage.img.length;
+            let minX = 0, maxX = this.stage.img[0].length;
             posX = getRandomInt(minX, maxX);
         }
         if (!posY) {
@@ -192,6 +250,97 @@ export default class Game
         return false;
     }
 
+    checkHitEnemies(row, col)
+    {
+        for (const [key, enemy] of Object.entries(this.enemies)) {
+            for (let eRow=0;eRow<enemy.img.img .length; eRow++) {
+                for (let eCol=0; eCol<enemy.img.img[eRow].length; eCol++) {
+                    if (
+                        'F' !== this.player.img[row][col] &&
+                        'F' !== enemy.img.img[eRow][eCol] &&
+                        this.player.posY + row === enemy.img.posY + eRow &&
+                        this.player.posX + col === enemy.img.posX + eCol
+                    ) {
+                        switch (this.player.newDirection) {
+                            case 'top':
+                                this.player.posY += 10;
+                                break;
+                            case 'down':
+                                this.player.posY -= 10;
+                                break;
+                            case 'right':
+                                this.player.posX -= 10;
+                                break;
+                            case 'left':
+                                this.player.posX += 10;
+                                break;
+                        }
+                        if (this.checkHitWall(this.player)) {
+                            this.player.newDirection = null;
+                            this.putCharacter(this.player);
+                        }
+                        this.player.hit = true;
+                        this.message = ["A zombie attacked me!! Help!! Help!!!", "...? but i'm okay. I'm still human. Maybe they don't have virus."];
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    checkHitCoin(row, col)
+    {
+        for (const [key, thing] of Object.entries(this.thingList)) {
+            for (let eRow=0;eRow<thing.img .length; eRow++) {
+                for (let eCol=0; eCol<thing.img[eRow].length; eCol++) {
+                    if (
+                        'F' !== this.player.img[row][col] &&
+                        'F' !== thing.img[eRow][eCol] &&
+                        this.player.posY + row === thing.posY + eRow &&
+                        this.player.posX + col === thing.posX + eCol
+                    ) {
+                        thing.clear = true;
+                        this.message = ["I found a coin!! Yeah!!!!!"];
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    checkHitExit(row, col, thing)
+    {
+        for (let eRow=0;eRow<this.exit.img .length; eRow++) {
+            for (let eCol=0; eCol<this.exit.img[eRow].length; eCol++) {
+                if (
+                    'F' !== thing.img[row][col] &&
+                    thing.posY + row === this.exit.posY + eRow &&
+                    thing.posX + col === this.exit.posX + eCol
+                ) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    checkHit()
+    {
+        for (let row=0;row<this.player.img.length; row++) {
+            for (let col=0; col<this.player.img[row].length; col++) {
+                if (this.checkHitEnemies(row, col)) return true;
+                if (this.checkHitCoin(row, col)) return true;
+                if (this.checkHitExit(row, col, this.player)) {
+                    this.message = ["I found a up stairs. Do i up now? Or No?", "> Yes", "  No"];
+                    this.stop = true;
+                    this.answer = 'Yes';
+                    window.addEventListener("keyup", this.keyUpQuestion.bind(this));
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     drawMain()
     {
         for (let [key, hole] of Object.entries(this.holeList)) {
@@ -205,6 +354,11 @@ export default class Game
 
         for (let [key, thing] of Object.entries(this.thingList)) {
             if (thing.put) {
+                if (thing.clear) {
+                    this.clearObject(thing.img, thing.posY, thing.posX);
+                    delete this.thingList[key];
+                    this.coinCount++;
+                }
                 continue;
             }
             if (thing.count >= 0) {
@@ -219,6 +373,11 @@ export default class Game
             thing.put = true;
         }
 
+        if (!this.exit.put) {
+            this.drawObject(this.exit.img, this.exit.posY, this.exit.posX);
+            this.exit.put = true;
+        }
+
         for (let [key, enemy] of Object.entries(this.enemies)) {
             this.drawCharacter(enemy.img);
         }
@@ -228,17 +387,21 @@ export default class Game
             if (hole.put) {
                 hole.count--;
                 if (hole.count === 0) {
+                    this.notFoundCount++;
+                    this.message = ["Not Found...", "I couldn't find something... I want to get money."];
                     hole.clear = true;
                 }
                 continue;
             }
             this.drawObject(hole.img, hole.posY, hole.posX);
-            let num = getRandomInt(0, 100);
-            if (0 === num % 13) {
+
+            let num = getRandomInt(0, 5);
+
+            if (0 === num) {
                 let enemy = new CharacterWriter('enemy', 'down');
                 this.putCharacter(enemy, hole.posX, hole.posY);
                 this.enemies[getRandomInt(0, 999)] = {count: 30, img: enemy, holeKey: key};
-            } else if (0 === num % 15) {
+            } else if (1 === num) {
                 this.thingList[getRandomInt(0, 999)] = {
                     count: 30,
                     img: COIN_IMG,
@@ -248,10 +411,26 @@ export default class Game
                     posY: hole.posY,
                     posX: hole.posX
                 };
+            } else if (0 === getRandomInt(0, 100)) {
+                this.stop = true;
+                this.start();
+                if (this.floor > 1) {
+                    this.floor--;
+                }
+                this.message = ["I fall down the hole..."];
             }
 
             hole.put = true;
         }
+
+        this.mCanvas.fillStyle = WALL_COLOR;
+        this.mCanvas.fillRect(0 ,this.stage.height*PIXEL_SIZE , this.stage.width*PIXEL_SIZE, MESSAGE_WINDOW_HEIGHT);
+        this.mCanvas.font = "14pt monospace";
+        this.mCanvas.textAlign = "left";
+        this.mCanvas.textBaseline = "top";
+        this.writeCountWindow();
+        this.writeInformationWindow();
+        this.writeMessageWindow();
     }
 
     drawObject(object, posY, posX)
@@ -315,6 +494,98 @@ export default class Game
         }
     }
 
+    writeCountWindow(id)
+    {
+        let startPosition = 0;
+        let margin = 5;
+        this.mCanvas.strokeStyle = 'white';
+        this.mCanvas.strokeRect(startPosition+margin ,this.stage.height*PIXEL_SIZE+margin, 300, MESSAGE_WINDOW_HEIGHT-margin*2);
+
+        this.mCanvas.fillStyle = "white";
+
+        this.mCanvas.fillText(
+            `Not Found   : ${this.notFoundCount}`,
+            startPosition+margin*2,
+            this.stage.height*PIXEL_SIZE+margin*2,
+            this.stage.width*PIXEL_SIZE
+        );
+        this.mCanvas.fillText(
+            `Found Coin  : ${this.coinCount}`,
+            startPosition+margin*2,
+            this.stage.height*PIXEL_SIZE + 25*1 +margin*2,
+            this.stage.width*PIXEL_SIZE
+        );
+        this.mCanvas.fillText(
+            `Found Zombie: ${this.zombieCount}`,
+            startPosition+margin*2,
+            this.stage.height*PIXEL_SIZE + 25*2 +margin*2,
+            this.stage.width*PIXEL_SIZE
+        );
+        this.mCanvas.beginPath();
+    }
+
+    writeInformationWindow()
+    {
+        let margin = 5;
+        let startPosition = 300+margin;
+        this.mCanvas.strokeStyle = 'white';
+        this.mCanvas.strokeRect(startPosition+margin ,this.stage.height*PIXEL_SIZE+margin, 300, MESSAGE_WINDOW_HEIGHT-margin*2);
+
+        this.mCanvas.fillStyle = "white";
+        this.mCanvas.fillText(
+            `Floor: ${this.floor}F`,
+            startPosition+margin*2,
+            this.stage.height*PIXEL_SIZE+margin*2,
+            this.stage.width*PIXEL_SIZE
+        );
+        this.mCanvas.fillText(
+            `Equipment: `,
+            startPosition+margin*2,
+            this.stage.height*PIXEL_SIZE+25*1+margin*2,
+            this.stage.width*PIXEL_SIZE
+        );
+        this.mCanvas.fillText(
+            ` ${this.player.equipment.join(',')}`,
+            startPosition+margin*2,
+            this.stage.height*PIXEL_SIZE+25*2+margin*2,
+            this.stage.width*PIXEL_SIZE
+        );
+        this.mCanvas.beginPath();
+    }
+
+    writeMessageWindow()
+    {
+        let margin = 5;
+        let startPosition = (300+margin)*2;
+        this.mCanvas.strokeStyle = 'white';
+        this.mCanvas.strokeRect(startPosition+margin ,this.stage.height*PIXEL_SIZE+margin, this.stage.width*PIXEL_SIZE - startPosition - margin*2, MESSAGE_WINDOW_HEIGHT-margin*2);
+
+        this.mCanvas.fillStyle = "white";
+        this.mCanvas.beginPath();
+
+        let height = this.stage.height*PIXEL_SIZE+margin*2;
+        for (let i=0; i< this.message.length; i++) {
+            const msg = this.message[i];
+            height = (i === 0) ? height : height + 25;
+            this.mCanvas.fillText(
+                msg,
+                startPosition+margin*2,
+                height,
+                this.stage.width*PIXEL_SIZE
+            );
+        }
+    }
+
+    putExit()
+    {
+        let roomIdx = getRandomInt(0, this.stage.roomList.length-1);
+        let room = this.stage.roomList[roomIdx];
+        let posY = getRandomInt(room.minY, room.maxY-CHARACTER_SIZE);
+        let posX = getRandomInt(room.minX, room.maxX-CHARACTER_SIZE);
+
+        this.exit = {img:STAIRS_IMG, posY: posY, posX:posX,put:false};
+    }
+
     keyDown(e)
     {
         switch(e.keyCode) {
@@ -352,6 +623,47 @@ export default class Game
             case 83:    // S
                 this.player.newDirection = null;
                 break;
+        }
+    }
+
+    keyUpQuestion(e)
+    {
+        switch(e.keyCode) {
+            case 38:    // arrowUp
+            case 87:    // W
+            case 40:    // arrowDown
+            case 83:    // S
+
+                if (this.answer === 'Yes') {
+                    this.message[1] = '  Yes';
+                    this.message[2] = '> No';
+                    this.answer = 'No';
+                } else {
+                    this.message[1] = '> Yes';
+                    this.message[2] = '  No';
+                    this.answer = 'Yes';
+                }
+                this.mCanvas.fillStyle = WALL_COLOR;
+                this.mCanvas.fillRect(0 ,this.stage.height*PIXEL_SIZE , this.stage.width*PIXEL_SIZE, MESSAGE_WINDOW_HEIGHT);
+                this.mCanvas.font = "14pt monospace";
+                this.mCanvas.textAlign = "left";
+                this.mCanvas.textBaseline = "top";
+                this.writeCountWindow();
+                this.writeInformationWindow();
+                this.writeMessageWindow();
+                break;
+            case 32:    // space
+                if (this.answer === 'Yes') {
+                    this.message = ["I go up!!!"];
+                    this.floor++;
+                    this.start();
+                } else {
+                    this.stop = false;
+                    this.player.posY = this.player.prePosY;
+                    this.player.posX = this.player.prePosX;
+                    window.requestAnimationFrame(this.playing.bind(this));
+                    window.addEventListener("keyup", this.keyUp.bind(this));
+                }
         }
     }
 

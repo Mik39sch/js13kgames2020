@@ -2,20 +2,17 @@ export default class StageWriter
 {
     constructor(canvasEl)
     {
-        this.rectList = [];
-        this.roomList = [];
-        this.pathList = [];
-
-        this.frameSize = getRandomInt(300, 300);
+        this.height = 400;
+        this.width = 800;
         if (getRandomInt(1,1) % 2 !== 0) {
-            this.createMazeAsTorneko(this.frameSize, this.frameSize);
+            this.createMazeAsTorneko(this.width, this.height);
         } else {
-            this.createMaze(this.frameSize, this.frameSize);
+            this.createMaze(this.width, this.height);
         }
 
         this.canvasEl = canvasEl;
-        this.canvasEl.height = this.img.length * PIXEL_SIZE;
-        this.canvasEl.width = this.img[0].length * PIXEL_SIZE;
+        this.canvasEl.height = this.height * PIXEL_SIZE + MESSAGE_WINDOW_HEIGHT;
+        this.canvasEl.width = this.width * PIXEL_SIZE;
 
         this.canvas = this.canvasEl.getContext('2d', {alpha: false});
     }
@@ -62,8 +59,8 @@ export default class StageWriter
             (parent.maxY - parent.minY <= rectMargin) ||
             (parent.maxX - parent.minX <= rectMargin) ||
             (parent.minX + rectMargin >= parent.maxX - rectMargin) ||
-            (parent.minY + rectMargin >= parent.maxY - rectMargin) ||
-            (getRandomInt(0,10) === 0)
+            (parent.minY + rectMargin >= parent.maxY - rectMargin)
+            // (getRandomInt(0,20) === 0)
         ) {
             return;
         }
@@ -158,6 +155,10 @@ export default class StageWriter
 
     createMazeAsTorneko(width, height)
     {
+        this.rectList = [];
+        this.roomList = [];
+        this.pathList = [];
+
         this.splitRect(this.addRect(0, 0, width, height));
         this.makeRoom();
 

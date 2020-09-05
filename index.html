@@ -2,14 +2,6 @@
     <head>
         <meta charset="utf-8">
         <style>
-            #wrapper {
-                position: relative;
-            }
-            #wrapper canvas {
-                position: absolute;
-                top: 0;
-                left: 0;
-            }
             .button {
                 width: 100px;
                 height: 50px;
@@ -21,16 +13,13 @@
             .clear{
                 clear: both;
             }
+            #controller {
+                display: none;
+            }
         </style>
     </head>
     <body>
-        <div id="wrapper">
-            <canvas id="stage"></canvas>
-            <canvas id="character"></canvas>
-        </div>
-        <div>
-            Not Found: xxx, Found Money:xxx, Found Zombie: xxx
-        </div>
+        <canvas id="canvas"></canvas>
         <div id="controller">
             <div id="up" class="button">UP</div>
             <div id="down" class="button">DOWN</div>
