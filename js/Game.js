@@ -55,7 +55,7 @@ export default class Game
     {
         if (this.stop) {
             this.mCanvas.clearRect(0, 0, this.stage.canvasEl.width, this.stage.canvasEl.height);
-            this.stage.createMazeAsTorneko(800, this.stage.height);
+            this.stage.createMazeAsTorneko(this.stage.width, this.stage.height);
             this.mCanvas.beginPath();
         }
 
