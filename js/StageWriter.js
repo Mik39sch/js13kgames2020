@@ -5,7 +5,7 @@ export default class StageWriter
         this.height = 400;
         this.width = 800;
         if (getRandomInt(1,1) % 2 !== 0) {
-            this.createMazeAsTorneko(100, this.height);
+            this.createMazeAsTorneko(800, this.height);
         } else {
             this.createMaze(this.width, this.height);
         }
