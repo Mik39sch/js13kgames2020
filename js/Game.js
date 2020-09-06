@@ -9,19 +9,22 @@ export default class Game
         this.prevTimestamp = 0;
 
         this.stage = new StageWriter(canvasEl);
+        this.player = new CharacterWriter('player', 'top');
         this.notFoundCount = 0;
         this.coinCount = 0;
         this.zombieCount = 0;
         this.floor = 1;
         this.answer = null;
         this.message = [
-            "I am a treasure hunter. I heard a rumor that there was some treasure in this cave.",
-            "But I'm lost!! I need to find exit...",
-            "While i'll researching exit, I research treasure also :)",
+            "I'm a treasure hunter. I heard a rumor that there was some treasures in this cave.",
+            "But I'm lost!! I need to find the exit...",
+            "While looking for the exit, I'll look for treasures too :)",
         ];
 
-        window.addEventListener("keydown", this.keyDown.bind(this));
-        window.addEventListener("keyup", this.keyUp.bind(this));
+        this.keyUpEvent = this.keyUp.bind(this);
+        this.keyDownEvent = this.keyDown.bind(this);
+        window.addEventListener("keydown", this.keyDownEvent);
+        window.addEventListener("keyup", this.keyUpEvent);
 
         if (DEBUG) {
             document.getElementById('controller').style.display = 'block';
@@ -52,26 +55,29 @@ export default class Game
     {
         if (this.stop) {
             this.mCanvas.clearRect(0, 0, this.stage.canvasEl.width, this.stage.canvasEl.height);
-            this.stage.createMazeAsTorneko(this.stage.width, this.stage.height);
+            this.stage.createMazeAsTorneko(100, this.stage.height);
             this.mCanvas.beginPath();
         }
 
-        this.putExit();
         this.stage.draw();
         this.holeList = {};
         this.thingList = {};
         this.hit = false;
         this.baseStage = JSON.parse(JSON.stringify(this.stage.img));
         this.currentStage = JSON.parse(JSON.stringify(this.baseStage));
-
-
-        this.player = new CharacterWriter('player', 'top');
         this.putCharacter(this.player);
 
         this.enemies = {};
         this.enemyMove = 5;
         this.stop = false;
 
+        this.putExit();
+        this.putShovel();
+        if (!this.player.equipment.includes("shovel")) {
+            this.putShovel();
+        }
+
+        this.player.newDirection = null;
         window.requestAnimationFrame(this.playing.bind(this));
     }
 
@@ -127,20 +133,25 @@ export default class Game
         if (this.player.action) {
             let hole = this.player.dig();
             this.player.action = false;
-            let result = true;
-            result = !this.checkHitWall(hole);
-            for (let i=0;i<hole.img.length;i++) {
-                for (let j=0;j<hole.img[0].length;j++) {
-                    result = !this.checkHitExit(i, j, hole);
-                    if (!result) {
+            let hit = true;
+            hit = this.checkHitWall(hole);
+
+            if (!hit) {
+                for (let row=0;row<hole.img.length;row++) {
+                    for (let col=0;col<hole.img[0].length;col++) {
+                        if (this.checkHitCoin(row, col, hole)) hit = true;
+                        if (this.checkHitExit(row, col, hole)) hit = true;
+                        if (hit) {
+                            break;
+                        }
+                    }
+                    if (hit) {
                         break;
                     }
                 }
-                if (!result) {
-                    break;
-                }
             }
-            if (result) {
+
+            if (!hit) {
                 this.holeList[getRandomInt(0,999)] = hole;
             }
         }
@@ -223,13 +234,13 @@ export default class Game
     {
         for (let row=0;row<character.img.length; row++) {
             const currentPosY = character.posY + row;
-            if (undefined === this.stage.img[currentPosY]) {
-                continue;
+            if (undefined === this.baseStage[currentPosY]) {
+                return true;
             }
             for (let col=0; col<character.img[row].length; col++) {
                 const currentPosX = character.posX + col;
-                if (undefined === this.stage.img[currentPosY][currentPosX]) {
-                    continue;
+                if (undefined === this.baseStage[currentPosY][currentPosX]) {
+                    return true;
                 }
 
                 if ('F' !== character.img[row][col]) {
@@ -288,19 +299,18 @@ export default class Game
         }
     }
 
-    checkHitCoin(row, col)
+    checkHitCoin(row, col, target)
     {
         for (const [key, thing] of Object.entries(this.thingList)) {
             for (let eRow=0;eRow<thing.img .length; eRow++) {
                 for (let eCol=0; eCol<thing.img[eRow].length; eCol++) {
                     if (
-                        'F' !== this.player.img[row][col] &&
+                        'F' !== target.img[row][col] &&
                         'F' !== thing.img[eRow][eCol] &&
-                        this.player.posY + row === thing.posY + eRow &&
-                        this.player.posX + col === thing.posX + eCol
+                        target.posY + row === thing.posY + eRow &&
+                        target.posX + col === thing.posX + eCol
                     ) {
-                        thing.clear = true;
-                        this.message = ["I found a coin!! Yeah!!!!!"];
+                        if (target.index === 'player') thing.clear = true;
                         return true;
                     }
                 }
@@ -308,14 +318,14 @@ export default class Game
         }
     }
 
-    checkHitExit(row, col, thing)
+    checkHitExit(row, col, target)
     {
         for (let eRow=0;eRow<this.exit.img .length; eRow++) {
             for (let eCol=0; eCol<this.exit.img[eRow].length; eCol++) {
                 if (
-                    'F' !== thing.img[row][col] &&
-                    thing.posY + row === this.exit.posY + eRow &&
-                    thing.posX + col === this.exit.posX + eCol
+                    'F' !== target.img[row][col] &&
+                    target.posY + row === this.exit.posY + eRow &&
+                    target.posX + col === this.exit.posX + eCol
                 ) {
                     return true;
                 }
@@ -328,12 +338,20 @@ export default class Game
         for (let row=0;row<this.player.img.length; row++) {
             for (let col=0; col<this.player.img[row].length; col++) {
                 if (this.checkHitEnemies(row, col)) return true;
-                if (this.checkHitCoin(row, col)) return true;
+                if (this.checkHitCoin(row, col, this.player)) {
+                    this.message = ["I found a coin!! Yeah!!!!!"];
+                    return true;
+                }
                 if (this.checkHitExit(row, col, this.player)) {
-                    this.message = ["I found a up stairs. Do i up now? Or No?", "> Yes", "  No"];
+                    this.message = ["I found a stairs. Should i go up?", "> Yes", "  No"];
                     this.stop = true;
                     this.answer = 'Yes';
-                    window.addEventListener("keyup", this.keyUpQuestion.bind(this));
+
+                    window.removeEventListener("keyup", this.keyUpEvent);
+                    window.removeEventListener("keydown", this.keyDownEvent);
+
+                    this.keyUpEvent = this.keyUpQuestion.bind(this);
+                    window.addEventListener("keyup", this.keyUpEvent);
                     return true;
                 }
             }
@@ -378,6 +396,11 @@ export default class Game
             this.exit.put = true;
         }
 
+        if (!this.shovel.put) {
+            this.drawObject(this.shovel.img, this.shovel.posY, this.shovel.posX);
+            this.shovel.put = true;
+        }
+
         for (let [key, enemy] of Object.entries(this.enemies)) {
             this.drawCharacter(enemy.img);
         }
@@ -388,7 +411,7 @@ export default class Game
                 hole.count--;
                 if (hole.count === 0) {
                     this.notFoundCount++;
-                    this.message = ["Not Found...", "I couldn't find something... I want to get money."];
+                    this.message = ["Not Found...", "I couldn't find something... I want to get more money."];
                     hole.clear = true;
                 }
                 continue;
@@ -583,7 +606,35 @@ export default class Game
         let posY = getRandomInt(room.minY, room.maxY-CHARACTER_SIZE);
         let posX = getRandomInt(room.minX, room.maxX-CHARACTER_SIZE);
 
-        this.exit = {img:STAIRS_IMG, posY: posY, posX:posX,put:false};
+        let exit = {img:STAIRS_IMG, posY:posY, posX:posX, put:false, clear: false};
+        if (this.checkHitWall(exit)) {
+            this.putExit();
+            return;
+        }
+        this.exit = exit;
+        for (let row=0;row<this.player.img.length; row++) {
+            for (let col=0; col<this.player.img[row].length; col++) {
+                if (this.checkHitExit(row, col, this.player)) {
+                    this.putExit();
+                    return;
+                }
+            }
+        }
+    }
+
+    putShovel()
+    {
+        let roomIdx = getRandomInt(0, this.stage.roomList.length-1);
+        let room = this.stage.roomList[roomIdx];
+        let posY = getRandomInt(room.minY, room.maxY-CHARACTER_SIZE);
+        let posX = getRandomInt(room.minX, room.maxX-CHARACTER_SIZE);
+
+        let shovel = {img:SHOVEL_IMG, posY:posY, posX:posX, put:false, clear: false};
+        if (this.checkHitWall(shovel)) {
+            this.putShovel();
+            return;
+        }
+        this.shovel = shovel;
     }
 
     keyDown(e)
@@ -656,14 +707,22 @@ export default class Game
                 if (this.answer === 'Yes') {
                     this.message = ["I go up!!!"];
                     this.floor++;
+                    this.answer = null;
                     this.start();
                 } else {
                     this.stop = false;
                     this.player.posY = this.player.prePosY;
                     this.player.posX = this.player.prePosX;
+                    this.player.newDirection = null;
                     window.requestAnimationFrame(this.playing.bind(this));
-                    window.addEventListener("keyup", this.keyUp.bind(this));
+
+                    this.message = ["I should still research this floor."];
                 }
+                window.removeEventListener("keyup", this.keyUpEvent);
+
+                this.keyUpEvent = this.keyUp.bind(this);
+                window.addEventListener("keyup", this.keyUpEvent);
+                window.addEventListener("keydown", this.keyDownEvent);
         }
     }
 

@@ -5,13 +5,14 @@ export default class StageWriter
         this.height = 400;
         this.width = 800;
         if (getRandomInt(1,1) % 2 !== 0) {
-            this.createMazeAsTorneko(this.width, this.height);
+            this.createMazeAsTorneko(100, this.height);
         } else {
             this.createMaze(this.width, this.height);
         }
 
         this.canvasEl = canvasEl;
         this.canvasEl.height = this.height * PIXEL_SIZE + MESSAGE_WINDOW_HEIGHT;
+        // this.canvasEl.width = this.width * PIXEL_SIZE;
         this.canvasEl.width = this.width * PIXEL_SIZE;
 
         this.canvas = this.canvasEl.getContext('2d', {alpha: false});
