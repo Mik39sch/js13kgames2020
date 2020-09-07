@@ -13,7 +13,7 @@ export default class CharacterWriter
         this.prePosY = null;
         this.prePosX = null;
         this.hit = false;
-        this.equipment = ['shovel'];
+        this.equipment = [];
 
         this.newDirection = null;
         this.currentDirection = direction;

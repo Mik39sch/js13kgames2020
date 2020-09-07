@@ -8,24 +8,14 @@ export default class Game
         this.mCanvas = canvas;
         this.prevTimestamp = 0;
 
+        this.initialize = true;
+
         this.stage = new StageWriter(canvasEl);
         this.player = new CharacterWriter('player', 'top');
-        this.notFoundCount = 0;
-        this.coinCount = 0;
-        this.zombieCount = 0;
-        this.floor = 1;
-        this.answer = null;
-        this.message = [
-            "I'm a treasure hunter. I heard a rumor that there was some treasures in this cave.",
-            "But I'm lost!! I need to find the exit...",
-            "While looking for the exit, I'll look for treasures too :)",
-        ];
+        this.message = messages.initial_message;
 
         this.keyUpEvent = this.keyUp.bind(this);
         this.keyDownEvent = this.keyDown.bind(this);
-        window.addEventListener("keydown", this.keyDownEvent);
-        window.addEventListener("keyup", this.keyUpEvent);
-
         if (DEBUG) {
             document.getElementById('controller').style.display = 'block';
             const upButton = document.getElementById("up");
@@ -53,6 +43,24 @@ export default class Game
 
     start()
     {
+        if (this.initialize) {
+            this.gameover = false;
+            this.gameclear = false;
+            this.notFoundCount = 0;
+            this.coinCount = 0;
+            this.zombieCount = 0;
+            this.floor = 1;
+            this.answer = null;
+            this.player.equipment = [];
+            this.message = messages.initial_message;
+
+            window.removeEventListener("keyup", this.keyUpEvent);
+            this.keyUpEvent = this.keyUp.bind(this);
+            window.addEventListener("keyup", this.keyUpEvent);
+            window.addEventListener("keydown", this.keyDownEvent);
+
+            this.initialize = false;
+        }
         if (this.stop) {
             this.mCanvas.clearRect(0, 0, this.stage.canvasEl.width, this.stage.canvasEl.height);
             this.stage.createMazeAsTorneko(this.stage.width, this.stage.height);
@@ -72,13 +80,75 @@ export default class Game
         this.stop = false;
 
         this.putExit();
-        this.putShovel();
         if (!this.player.equipment.includes("shovel")) {
             this.putShovel();
         }
 
+        this.player.equipment = this.player.equipment.filter(eq=> eq !== 'key');
+
         this.player.newDirection = null;
-        window.requestAnimationFrame(this.playing.bind(this));
+
+        let msgEl = document.getElementById("message");
+        msgEl.style.display = "flex";
+        msgEl.style.width = this.stage.canvasEl.width;
+        msgEl.style.height = this.stage.canvasEl.height;
+
+        let self = this;
+        if (this.gameover) {
+            msgEl.innerHTML = "";
+            if (this.floor > 404) {
+                msgEl.innerHTML += "404階まで探した。<br>";
+                msgEl.innerHTML += "それから何日も出口を探したが、出口を見つけることはできなかった。<br>";
+                msgEl.innerHTML += "そのまま私はこの洞窟で飢え、ゾンビとなった。<br>";
+            }
+            if (this.zombieCount >= 100) {
+                msgEl.innerHTML += "ゾンビに囲まれて、もう身動きができない。<br>";
+                msgEl.innerHTML += "そのままゾンビに食べられ、私もゾンビとなった。<br>";
+            }
+            msgEl.innerHTML += "一人では寂しいので、次のトレジャーハンターが来たときは<br>";
+            msgEl.innerHTML += "私たちとともに永遠に洞窟に閉じ込めよう。<br>";
+            msgEl.innerHTML += "<br>";
+            msgEl.innerHTML += "キーをクリックして、ゲームを最初からスタートできます。<br>";
+
+            msgEl.classList.remove('fadeout');
+
+            setTimeout(function(){
+                window.removeEventListener("keyup", self.keyUpEvent);
+                window.removeEventListener("keydown", self.keyDownEvent);
+
+                self.keyUpEvent = self.keyUpContinue.bind(self);
+                window.addEventListener("keyup", self.keyUpEvent);
+            }, 1000);
+
+        } else if (this.gameclear) {
+            msgEl.innerHTML = "";
+
+            msgEl.innerHTML += "ついに外に出ることに成功した。この洞窟は危ないな・・・<br>";
+            msgEl.innerHTML += "しかし、財宝はたくさんあったな・・・<br>";
+            msgEl.innerHTML += "生きて出てこれたし、また来ても問題ないだろう。<br>";
+            msgEl.innerHTML += "また後日小遣い稼ぎに来よう。<br>";
+            msgEl.innerHTML += "<br>";
+            msgEl.innerHTML += "キーをクリックして、ゲームを最初からスタートできます。<br>";
+
+            msgEl.classList.remove('fadeout');
+
+            setTimeout(function(){
+                window.removeEventListener("keyup", self.keyUpEvent);
+                window.removeEventListener("keydown", self.keyDownEvent);
+
+                self.keyUpEvent = self.keyUpContinue.bind(self);
+                window.addEventListener("keyup", self.keyUpEvent);
+            }, 1000);
+        } else {
+            // msgEl.style.lineHeight = `${this.stage.canvasEl.height}px`;
+            msgEl.classList.add('fadeout');
+            msgEl.innerText = `${this.floor}F`;
+            setTimeout(function(){
+                msgEl.style.display = "none";
+            }, 5000);
+
+            window.requestAnimationFrame(self.playing.bind(self));
+        }
     }
 
     playing(timestamp)
@@ -114,6 +184,10 @@ export default class Game
 
             if (this.holeList[enemy.holeKey]) {
                 this.zombieCount++;
+                if (this.zombieCount === 100) {
+                    this.gameover = true;
+                    this.start();
+                }
                 this.holeList[enemy.holeKey].clear = true;
             }
             enemy.img.newDirection = null;
@@ -131,28 +205,31 @@ export default class Game
         }
 
         if (this.player.action) {
-            let hole = this.player.dig();
             this.player.action = false;
-            let hit = true;
-            hit = this.checkHitWall(hole);
 
-            if (!hit) {
-                for (let row=0;row<hole.img.length;row++) {
-                    for (let col=0;col<hole.img[0].length;col++) {
-                        if (this.checkHitCoin(row, col, hole)) hit = true;
-                        if (this.checkHitExit(row, col, hole)) hit = true;
+            if (this.player.equipment.includes("shovel")) {
+                let hole = this.player.dig();
+                let hit = true;
+                hit = this.checkHitWall(hole);
+
+                if (!hit) {
+                    for (let row=0;row<hole.img.length;row++) {
+                        for (let col=0;col<hole.img[0].length;col++) {
+                            if (this.checkHitThing(row, col, hole)) hit = true;
+                            if (this.checkHitExit(row, col, hole)) hit = true;
+                            if (hit) {
+                                break;
+                            }
+                        }
                         if (hit) {
                             break;
                         }
                     }
-                    if (hit) {
-                        break;
-                    }
                 }
-            }
 
-            if (!hit) {
-                this.holeList[getRandomInt(0,999)] = hole;
+                if (!hit) {
+                    this.holeList[getRandomInt(0,999)] = hole;
+                }
             }
         }
 
@@ -291,7 +368,7 @@ export default class Game
                             this.putCharacter(this.player);
                         }
                         this.player.hit = true;
-                        this.message = ["A zombie attacked me!! Help!! Help!!!", "...? but i'm okay. I'm still human. Maybe they don't have virus."];
+                        this.message = messages.zombie_attack;
                         return true;
                     }
                 }
@@ -299,7 +376,7 @@ export default class Game
         }
     }
 
-    checkHitCoin(row, col, target)
+    checkHitThing(row, col, target)
     {
         for (const [key, thing] of Object.entries(this.thingList)) {
             for (let eRow=0;eRow<thing.img .length; eRow++) {
@@ -338,12 +415,9 @@ export default class Game
         for (let row=0;row<this.player.img.length; row++) {
             for (let col=0; col<this.player.img[row].length; col++) {
                 if (this.checkHitEnemies(row, col)) return true;
-                if (this.checkHitCoin(row, col, this.player)) {
-                    this.message = ["I found a coin!! Yeah!!!!!"];
-                    return true;
-                }
+                if (this.checkHitThing(row, col, this.player)) return true;
                 if (this.checkHitExit(row, col, this.player)) {
-                    this.message = ["I found a stairs. Should i go up?", "> Yes", "  No"];
+                    this.message = messages.up_or_stay;
                     this.stop = true;
                     this.answer = 'Yes';
 
@@ -374,8 +448,8 @@ export default class Game
             if (thing.put) {
                 if (thing.clear) {
                     this.clearObject(thing.img, thing.posY, thing.posX);
+                    thing.clearFunc();
                     delete this.thingList[key];
-                    this.coinCount++;
                 }
                 continue;
             }
@@ -396,11 +470,6 @@ export default class Game
             this.exit.put = true;
         }
 
-        if (!this.shovel.put) {
-            this.drawObject(this.shovel.img, this.shovel.posY, this.shovel.posX);
-            this.shovel.put = true;
-        }
-
         for (let [key, enemy] of Object.entries(this.enemies)) {
             this.drawCharacter(enemy.img);
         }
@@ -411,14 +480,14 @@ export default class Game
                 hole.count--;
                 if (hole.count === 0) {
                     this.notFoundCount++;
-                    this.message = ["Not Found...", "I couldn't find something... I want to get more money."];
+                    this.message = messages.not_found;
                     hole.clear = true;
                 }
                 continue;
             }
             this.drawObject(hole.img, hole.posY, hole.posX);
 
-            let num = getRandomInt(0, 5);
+            let num = getRandomInt(0, 10);
 
             if (0 === num) {
                 let enemy = new CharacterWriter('enemy', 'down');
@@ -432,15 +501,35 @@ export default class Game
                     put: false,
                     clear: false,
                     posY: hole.posY,
-                    posX: hole.posX
+                    posX: hole.posX,
+                    clearFunc: () => {
+                        this.message = messages.found_coin;
+                        this.coinCount++;
+                    }
                 };
-            } else if (0 === getRandomInt(0, 100)) {
-                this.stop = true;
-                this.start();
-                if (this.floor > 1) {
-                    this.floor--;
+            } else if (0 === getRandomInt(0, 50)) {
+                if (!this.player.equipment.includes("key")) {
+                    this.thingList[getRandomInt(0, 999)] = {
+                        count: 30,
+                        img: KEY_IMG,
+                        holeKey: key,
+                        put: false,
+                        clear: false,
+                        posY: hole.posY,
+                        posX: hole.posX,
+                        clearFunc: () => {
+                            this.message = messages.found_key;
+                            this.player.equipment.push("key");
+                        }
+                    };
                 }
-                this.message = ["I fall down the hole..."];
+            } else if (0 === getRandomInt(0, 50)) {
+                if (this.floor > 1) {
+                    this.stop = true;
+                    this.start();
+                    this.floor--;
+                    this.message = messages.fall_down;
+                }
             }
 
             hole.put = true;
@@ -629,12 +718,15 @@ export default class Game
         let posY = getRandomInt(room.minY, room.maxY-CHARACTER_SIZE);
         let posX = getRandomInt(room.minX, room.maxX-CHARACTER_SIZE);
 
-        let shovel = {img:SHOVEL_IMG, posY:posY, posX:posX, put:false, clear: false};
+        let shovel = {img:SHOVEL_IMG, posY:posY, posX:posX, put:false, clear: false, clearFunc: () => {
+            this.player.equipment.push('shovel');
+            this.message = messages.found_shovel;
+        }};
         if (this.checkHitWall(shovel)) {
             this.putShovel();
             return;
         }
-        this.shovel = shovel;
+        this.thingList[getRandomInt(0, 999)] = shovel;
     }
 
     keyDown(e)
@@ -705,10 +797,26 @@ export default class Game
                 break;
             case 32:    // space
                 if (this.answer === 'Yes') {
-                    this.message = ["I go up!!!"];
-                    this.floor++;
-                    this.answer = null;
-                    this.start();
+                    if (this.player.equipment.includes("key")) {
+                        this.message = messages.up_stairs;
+                        this.floor++;
+                        this.answer = null;
+                        if (this.floor > 404) {
+                            this.gameover = true;
+                        }
+                        if (0 === getRandomInt(0, 50)) {
+                            this.gameclear = true;
+                        }
+                        this.start();
+                    } else {
+                        this.stop = false;
+                        this.player.posY = this.player.prePosY;
+                        this.player.posX = this.player.prePosX;
+                        this.player.newDirection = null;
+                        window.requestAnimationFrame(this.playing.bind(this));
+                        this.message = messages.not_found_key;
+                    }
+
                 } else {
                     this.stop = false;
                     this.player.posY = this.player.prePosY;
@@ -716,7 +824,7 @@ export default class Game
                     this.player.newDirection = null;
                     window.requestAnimationFrame(this.playing.bind(this));
 
-                    this.message = ["I should still research this floor."];
+                    this.message = messages.stay_floor;
                 }
                 window.removeEventListener("keyup", this.keyUpEvent);
 
@@ -726,4 +834,9 @@ export default class Game
         }
     }
 
+    keyUpContinue(e)
+    {
+        this.initialize = true;
+        this.start();
+    }
 }
