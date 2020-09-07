@@ -16,6 +16,7 @@ export default class Game
 
         this.keyUpEvent = this.keyUp.bind(this);
         this.keyDownEvent = this.keyDown.bind(this);
+        this.hitPoint = 100;
         if (DEBUG) {
             document.getElementById('controller').style.display = 'block';
             const upButton = document.getElementById("up");
@@ -48,7 +49,6 @@ export default class Game
             this.gameclear = false;
             this.notFoundCount = 0;
             this.coinCount = 0;
-            this.zombieCount = 0;
             this.floor = 1;
             this.answer = null;
             this.player.equipment = [];
@@ -61,6 +61,7 @@ export default class Game
 
             this.initialize = false;
         }
+        this.zombieCount = 0;
         if (this.stop) {
             this.mCanvas.clearRect(0, 0, this.stage.canvasEl.width, this.stage.canvasEl.height);
             this.stage.createMazeAsTorneko(this.stage.width, this.stage.height);
@@ -94,21 +95,27 @@ export default class Game
         msgEl.style.height = this.stage.canvasEl.height;
 
         let self = this;
+
+        this.gameover = true;
         if (this.gameover) {
             msgEl.innerHTML = "";
+
             if (this.floor > 404) {
-                msgEl.innerHTML += "404階まで探した。<br>";
-                msgEl.innerHTML += "それから何日も出口を探したが、出口を見つけることはできなかった。<br>";
-                msgEl.innerHTML += "そのまま私はこの洞窟で飢え、ゾンビとなった。<br>";
+                msgEl.innerHTML += "It been days since i was looking for an exit.<br>";
+                msgEl.innerHTML += "I have reached the last floor 404. But i'm still not successful.<br>";
+                msgEl.innerHTML += "I starved to death in this cave, and now i turned in to a zombie.<br>";
+            } else if (this.zombieCount >= 50) {
+                msgEl.innerHTML += "I couldn't move because of this zombies around me.<br>";
+                msgEl.innerHTML += "One of them has bitten me and turned me into one.<br>";
+            } else if (this.hitPoint <= 0) {
+                msgEl.innerHTML += "Zombies have attacked me. I can't see anything.<br>";
+                msgEl.innerHTML += "One of them has bitten me and turned me into one.<br>";
             }
-            if (this.zombieCount >= 100) {
-                msgEl.innerHTML += "ゾンビに囲まれて、もう身動きができない。<br>";
-                msgEl.innerHTML += "そのままゾンビに食べられ、私もゾンビとなった。<br>";
-            }
-            msgEl.innerHTML += "一人では寂しいので、次のトレジャーハンターが来たときは<br>";
-            msgEl.innerHTML += "私たちとともに永遠に洞窟に閉じ込めよう。<br>";
+
+            msgEl.innerHTML += "Next time a treasure hunter gets lost in this cave.<br>";
+            msgEl.innerHTML += "I will prepare welcome party...<br>";
             msgEl.innerHTML += "<br>";
-            msgEl.innerHTML += "キーをクリックして、ゲームを最初からスタートできます。<br>";
+            msgEl.innerHTML += "Press any key to start a new game.";
 
             msgEl.classList.remove('fadeout');
 
@@ -123,12 +130,11 @@ export default class Game
         } else if (this.gameclear) {
             msgEl.innerHTML = "";
 
-            msgEl.innerHTML += "ついに外に出ることに成功した。この洞窟は危ないな・・・<br>";
-            msgEl.innerHTML += "しかし、財宝はたくさんあったな・・・<br>";
-            msgEl.innerHTML += "生きて出てこれたし、また来ても問題ないだろう。<br>";
-            msgEl.innerHTML += "また後日小遣い稼ぎに来よう。<br>";
+            msgEl.innerHTML += "I finally found the exit. I think this cave is very dangerous...<br>";
+            msgEl.innerHTML += "But I was able to get a lot of money and I'm still alive!!<br>";
+            msgEl.innerHTML += "I think it's okay to come back for more.<br>";
             msgEl.innerHTML += "<br>";
-            msgEl.innerHTML += "キーをクリックして、ゲームを最初からスタートできます。<br>";
+            msgEl.innerHTML += "Press any key to start a new game.";
 
             msgEl.classList.remove('fadeout');
 
@@ -184,7 +190,7 @@ export default class Game
 
             if (this.holeList[enemy.holeKey]) {
                 this.zombieCount++;
-                if (this.zombieCount === 100) {
+                if (this.zombieCount === 50) {
                     this.gameover = true;
                     this.start();
                 }
@@ -369,6 +375,11 @@ export default class Game
                         }
                         this.player.hit = true;
                         this.message = messages.zombie_attack;
+                        this.hitPoint -= 10;
+                        if (this.hitPoint <= 0) {
+                            this.gameover = true;
+                            this.start();
+                        }
                         return true;
                     }
                 }
@@ -537,7 +548,7 @@ export default class Game
 
         this.mCanvas.fillStyle = WALL_COLOR;
         this.mCanvas.fillRect(0 ,this.stage.height*PIXEL_SIZE , this.stage.width*PIXEL_SIZE, MESSAGE_WINDOW_HEIGHT);
-        this.mCanvas.font = "14pt monospace";
+        this.mCanvas.font = "10pt monospace";
         this.mCanvas.textAlign = "left";
         this.mCanvas.textBaseline = "top";
         this.writeCountWindow();
@@ -611,26 +622,32 @@ export default class Game
         let startPosition = 0;
         let margin = 5;
         this.mCanvas.strokeStyle = 'white';
-        this.mCanvas.strokeRect(startPosition+margin ,this.stage.height*PIXEL_SIZE+margin, 300, MESSAGE_WINDOW_HEIGHT-margin*2);
+        this.mCanvas.strokeRect(startPosition+margin ,this.stage.height*PIXEL_SIZE+margin, 150, MESSAGE_WINDOW_HEIGHT-margin*2);
 
         this.mCanvas.fillStyle = "white";
 
         this.mCanvas.fillText(
-            `Not Found   : ${this.notFoundCount}`,
+            `Not Found : ${this.notFoundCount}`,
             startPosition+margin*2,
             this.stage.height*PIXEL_SIZE+margin*2,
             this.stage.width*PIXEL_SIZE
         );
         this.mCanvas.fillText(
-            `Found Coin  : ${this.coinCount}`,
+            `Coin      : ${this.coinCount}`,
             startPosition+margin*2,
-            this.stage.height*PIXEL_SIZE + 25*1 +margin*2,
+            this.stage.height*PIXEL_SIZE + 20*1 +margin*2,
             this.stage.width*PIXEL_SIZE
         );
         this.mCanvas.fillText(
-            `Found Zombie: ${this.zombieCount}`,
+            `HP        : ${this.hitPoint}`,
             startPosition+margin*2,
-            this.stage.height*PIXEL_SIZE + 25*2 +margin*2,
+            this.stage.height*PIXEL_SIZE + 20*2 +margin*2,
+            this.stage.width*PIXEL_SIZE
+        );
+        this.mCanvas.fillText(
+            `Floor     : ${this.floor}F`,
+            startPosition+margin*2,
+            this.stage.height*PIXEL_SIZE+20*3+margin*2,
             this.stage.width*PIXEL_SIZE
         );
         this.mCanvas.beginPath();
@@ -639,36 +656,35 @@ export default class Game
     writeInformationWindow()
     {
         let margin = 5;
-        let startPosition = 300+margin;
+        let startPosition = 150+margin;
         this.mCanvas.strokeStyle = 'white';
-        this.mCanvas.strokeRect(startPosition+margin ,this.stage.height*PIXEL_SIZE+margin, 300, MESSAGE_WINDOW_HEIGHT-margin*2);
+        this.mCanvas.strokeRect(startPosition+margin ,this.stage.height*PIXEL_SIZE+margin, 150, MESSAGE_WINDOW_HEIGHT-margin*2);
 
         this.mCanvas.fillStyle = "white";
+
         this.mCanvas.fillText(
-            `Floor: ${this.floor}F`,
+            `Equipment: `,
             startPosition+margin*2,
             this.stage.height*PIXEL_SIZE+margin*2,
             this.stage.width*PIXEL_SIZE
         );
-        this.mCanvas.fillText(
-            `Equipment: `,
-            startPosition+margin*2,
-            this.stage.height*PIXEL_SIZE+25*1+margin*2,
-            this.stage.width*PIXEL_SIZE
-        );
-        this.mCanvas.fillText(
-            ` ${this.player.equipment.join(',')}`,
-            startPosition+margin*2,
-            this.stage.height*PIXEL_SIZE+25*2+margin*2,
-            this.stage.width*PIXEL_SIZE
-        );
+
+        for (let i=0; i< this.player.equipment.length; i++) {
+            const item = this.player.equipment[i];
+            this.mCanvas.fillText(
+                ` ${item}`,
+                startPosition+margin*2,
+                this.stage.height*PIXEL_SIZE+20*(i+1)+margin*2,
+                this.stage.width*PIXEL_SIZE
+            );
+        }
         this.mCanvas.beginPath();
     }
 
     writeMessageWindow()
     {
         let margin = 5;
-        let startPosition = (300+margin)*2;
+        let startPosition = (150+margin)*2;
         this.mCanvas.strokeStyle = 'white';
         this.mCanvas.strokeRect(startPosition+margin ,this.stage.height*PIXEL_SIZE+margin, this.stage.width*PIXEL_SIZE - startPosition - margin*2, MESSAGE_WINDOW_HEIGHT-margin*2);
 
@@ -678,7 +694,7 @@ export default class Game
         let height = this.stage.height*PIXEL_SIZE+margin*2;
         for (let i=0; i< this.message.length; i++) {
             const msg = this.message[i];
-            height = (i === 0) ? height : height + 25;
+            height = (i === 0) ? height : height + 20;
             this.mCanvas.fillText(
                 msg,
                 startPosition+margin*2,

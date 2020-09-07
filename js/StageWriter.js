@@ -3,7 +3,7 @@ export default class StageWriter
     constructor(canvasEl)
     {
         this.height = 400;
-        this.width = 800;
+        this.width = 400;
         if (getRandomInt(1,1) % 2 !== 0) {
             this.createMazeAsTorneko(this.width, this.height);
         } else {
@@ -12,7 +12,6 @@ export default class StageWriter
 
         this.canvasEl = canvasEl;
         this.canvasEl.height = this.height * PIXEL_SIZE + MESSAGE_WINDOW_HEIGHT;
-        // this.canvasEl.width = this.width * PIXEL_SIZE;
         this.canvasEl.width = this.width * PIXEL_SIZE;
 
         this.canvas = this.canvasEl.getContext('2d', {alpha: false});
@@ -114,7 +113,7 @@ export default class StageWriter
                 } else if ((x0 <= x1) && (y0 < y1)) {
                     x = i, y = max_y;
                 }
-                for (let j=0;j<CHARACTER_SIZE-1;j++) {
+                for (let j=0;j<CHARACTER_SIZE+4-1;j++) {
                     if (isPuls) {
                         this.setImageData(y+j, x, '0');
                     } else {
@@ -244,17 +243,17 @@ export default class StageWriter
                     }
 
                     if (isPuls) {
-                        if (c0x > path.rect0.room.maxX - CHARACTER_SIZE) {
+                        if (c0x > path.rect0.room.maxX - CHARACTER_SIZE - 4) {
                             c0x -= CHARACTER_SIZE;
                         }
-                        if (c1x > path.rect1.room.maxX - CHARACTER_SIZE) {
+                        if (c1x > path.rect1.room.maxX - CHARACTER_SIZE - 4) {
                             c1x -= CHARACTER_SIZE;
                         }
                     } else {
-                        if (c0x < path.rect0.room.minX + CHARACTER_SIZE) {
+                        if (c0x < path.rect0.room.minX + CHARACTER_SIZE + 4) {
                             c0x += CHARACTER_SIZE;
                         }
-                        if (c1x < path.rect1.room.minX + CHARACTER_SIZE) {
+                        if (c1x < path.rect1.room.minX + CHARACTER_SIZE + 4) {
                             c1x += CHARACTER_SIZE;
                         }
                     }

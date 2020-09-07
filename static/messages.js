@@ -1,6 +1,7 @@
 messages = {
     initial_message: [
-        "I'm a treasure hunter. I heard a rumor that there was some treasures in this cave.",
+        "I'm a treasure hunter.",
+        "I heard a rumor that there was some treasures in this cave.",
         "But I'm lost!! I need to find the exit...",
         "While looking for the exit, I'll look for treasures too :)",
     ],
