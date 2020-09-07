@@ -96,7 +96,6 @@ export default class Game
 
         let self = this;
 
-        this.gameover = true;
         if (this.gameover) {
             msgEl.innerHTML = "";
 
