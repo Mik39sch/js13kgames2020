@@ -36,7 +36,14 @@ messages = {
         "I found a key. Where do i need to use this?"
     ],
     found_shovel: [
-        "I found a shovel. I can dig soil with [Space]key.",
+        "I found a shovel. I can dig soil with [Space(Dig)]key.",
+    ],
+    found_sword: [
+        "I found a sword. I can kill zombies with [Enter(Attack)]key.",
+    ],
+    found_onigiri: [
+        "I found a onigiri.",
+        "I just feel hungry. If i eat too much I will become fat.",
     ],
     fall_down: [
         "I fall down the hole..."

@@ -2,7 +2,7 @@ export default class StageWriter
 {
     constructor(canvasEl)
     {
-        this.height = 400;
+        this.height = 250;
         this.width = 400;
         if (getRandomInt(1,1) % 2 !== 0) {
             this.createMazeAsTorneko(this.width, this.height);
@@ -13,6 +13,7 @@ export default class StageWriter
         this.canvasEl = canvasEl;
         this.canvasEl.height = this.height * PIXEL_SIZE + MESSAGE_WINDOW_HEIGHT;
         this.canvasEl.width = this.width * PIXEL_SIZE;
+        document.getElementById("wrapper").style.width = this.canvasEl.width;
 
         this.canvas = this.canvasEl.getContext('2d', {alpha: false});
     }

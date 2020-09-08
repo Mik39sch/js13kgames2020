@@ -1,58 +1,23 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <style>
-            .button {
-                width: 100px;
-                height: 50px;
-                border: 1px solid #999;
-            }
-            .float{
-                float: left;
-            }
-            .clear{
-                clear: both;
-            }
-            #controller {
-                display: none;
-            }
-            #message {
-                position: fixed;
-                top: 8px;
-                left: 8px;
-                background-color: black;
-                color: white;
-                font-weight: bold;
-                font-size: 14pt;
-                /* text-align: center; */
-                display: none;
-                /* display: flex; */
-                align-items: center;
-                justify-content: center
-            }
-            .fadeout {
-                animation : fadeOut 5s;
-                animation-fill-mode: both;
-            }
-            @keyframes fadeOut {
-                0% {
-                    opacity: 1;
-                }
-                100% {
-                    opacity: 0;
-                }
-            }
-        </style>
+        <link rel="stylesheet" type="text/css" href="./style/app.css">
     </head>
     <body>
-        <canvas id="canvas"></canvas>
-        <div id="message">1F</div>
-        <div id="controller">
-            <div id="up" class="button">UP</div>
-            <div id="down" class="button">DOWN</div>
-            <div id="left" class="button float">LEFT</div>
-            <div id="right" class="button float">RIGHT</div>
-            <div id="space" class="button clear">DIG</div>
+        <div id="wrapper">
+            <canvas id="canvas"></canvas>
+            <div id="message">1F</div>
+            <div id='ctrl'>
+                <div id='ArrowUp'>^</div>
+                <div id='ArrowLeft'>^</div>
+                <div id='ArrowRight'>^</div>
+                <div id='ArrowDown'>^</div>
+                <div id='ArrowCenter'><div></div></div>
+                <div id='b'></div>
+                <div id='a'></div>
+                <div id='labelB'>Attack</div>
+                <div id='labelA'>Dig</div>
+            </div>
         </div>
         <script src="./static/common.js"></script>
         <script src="./static/const.js"></script>

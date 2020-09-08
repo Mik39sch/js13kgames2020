@@ -13,32 +13,9 @@ export default class Game
         this.stage = new StageWriter(canvasEl);
         this.player = new CharacterWriter('player', 'top');
         this.message = messages.initial_message;
+        this.eventKeys = {};
 
-        this.keyUpEvent = this.keyUp.bind(this);
-        this.keyDownEvent = this.keyDown.bind(this);
         this.hitPoint = 100;
-        if (DEBUG) {
-            document.getElementById('controller').style.display = 'block';
-            const upButton = document.getElementById("up");
-            const downButton = document.getElementById("down");
-            const leftButton = document.getElementById("left");
-            const rightButton = document.getElementById("right");
-            const spaceButton = document.getElementById("space");
-            let self = this;
-            upButton.addEventListener("touchstart", function(e){self.player.newDirection = 'top';});
-            upButton.addEventListener("touchend", function(e){self.player.newDirection = null;});
-
-            downButton.addEventListener("touchstart", function(e) { self.player.newDirection = 'down'; });
-            downButton.addEventListener("touchend", function(e) { self.player.newDirection = null; });
-
-            leftButton.addEventListener("touchstart", function(e) { self.player.newDirection = 'left'; });
-            leftButton.addEventListener("touchend", function(e) { self.player.newDirection = null; });
-
-            rightButton.addEventListener("touchstart", function(e) { self.player.newDirection = 'right'; });
-            rightButton.addEventListener("touchend", function(e) { self.player.newDirection = null; });
-
-            spaceButton.addEventListener("touchstart", function(e) { self.player.action = true; });
-        }
         this.start();
     }
 
@@ -53,11 +30,9 @@ export default class Game
             this.answer = null;
             this.player.equipment = [];
             this.message = messages.initial_message;
+            this.hitPoint = 100;
 
-            window.removeEventListener("keyup", this.keyUpEvent);
-            this.keyUpEvent = this.keyUp.bind(this);
-            window.addEventListener("keyup", this.keyUpEvent);
-            window.addEventListener("keydown", this.keyDownEvent);
+            this.setEventListener('normal', this);
 
             this.initialize = false;
         }
@@ -119,11 +94,7 @@ export default class Game
             msgEl.classList.remove('fadeout');
 
             setTimeout(function(){
-                window.removeEventListener("keyup", self.keyUpEvent);
-                window.removeEventListener("keydown", self.keyDownEvent);
-
-                self.keyUpEvent = self.keyUpContinue.bind(self);
-                window.addEventListener("keyup", self.keyUpEvent);
+                self.setEventListener('continue', self);
             }, 1000);
 
         } else if (this.gameclear) {
@@ -138,14 +109,9 @@ export default class Game
             msgEl.classList.remove('fadeout');
 
             setTimeout(function(){
-                window.removeEventListener("keyup", self.keyUpEvent);
-                window.removeEventListener("keydown", self.keyDownEvent);
-
-                self.keyUpEvent = self.keyUpContinue.bind(self);
-                window.addEventListener("keyup", self.keyUpEvent);
+                self.setEventListener('continue', self);
             }, 1000);
         } else {
-            // msgEl.style.lineHeight = `${this.stage.canvasEl.height}px`;
             msgEl.classList.add('fadeout');
             msgEl.innerText = `${this.floor}F`;
             setTimeout(function(){
@@ -182,6 +148,7 @@ export default class Game
 
         // 敵の動作
         for (const [key, enemy] of Object.entries(this.enemies)) {
+            if (enemy === undefined) continue;
             if (enemy.count >= 0) {
                 enemy.count--;
                 continue;
@@ -197,8 +164,10 @@ export default class Game
             }
             enemy.img.newDirection = null;
             if (this.enemyMove === 0) {
-                let constDirection = [null, 'top', 'down', 'right', 'left'];
-                enemy.img.newDirection = constDirection[getRandomInt(0, 4)];
+                let constDirection = ['top', 'down', 'left', 'right', null];
+                let direction = constDirection[getRandomInt(0, 4)];
+                if (direction === enemy.img.newDirection) direction = null;
+                enemy.img.newDirection = direction;
             }
             this.moveCharacter(enemy.img, false);
         }
@@ -209,8 +178,8 @@ export default class Game
             this.enemyMove--;
         }
 
-        if (this.player.action) {
-            this.player.action = false;
+        if (this.player.digAction) {
+            this.player.digAction = false;
 
             if (this.player.equipment.includes("shovel")) {
                 let hole = this.player.dig();
@@ -346,6 +315,7 @@ export default class Game
     checkHitEnemies(row, col)
     {
         for (const [key, enemy] of Object.entries(this.enemies)) {
+            if (enemy === undefined) continue;
             for (let eRow=0;eRow<enemy.img.img .length; eRow++) {
                 for (let eCol=0; eCol<enemy.img.img[eRow].length; eCol++) {
                     if (
@@ -389,6 +359,7 @@ export default class Game
     checkHitThing(row, col, target)
     {
         for (const [key, thing] of Object.entries(this.thingList)) {
+            if (thing === undefined) continue;
             for (let eRow=0;eRow<thing.img .length; eRow++) {
                 for (let eCol=0; eCol<thing.img[eRow].length; eCol++) {
                     if (
@@ -430,12 +401,7 @@ export default class Game
                     this.message = messages.up_or_stay;
                     this.stop = true;
                     this.answer = 'Yes';
-
-                    window.removeEventListener("keyup", this.keyUpEvent);
-                    window.removeEventListener("keydown", this.keyDownEvent);
-
-                    this.keyUpEvent = this.keyUpQuestion.bind(this);
-                    window.addEventListener("keyup", this.keyUpEvent);
+                    this.setEventListener('question', this);
                     return true;
                 }
             }
@@ -446,6 +412,7 @@ export default class Game
     drawMain()
     {
         for (let [key, hole] of Object.entries(this.holeList)) {
+            if (hole === undefined) continue;
             if (!hole.clear) {
                 continue;
             }
@@ -455,6 +422,7 @@ export default class Game
         }
 
         for (let [key, thing] of Object.entries(this.thingList)) {
+            if (thing === undefined) continue;
             if (thing.put) {
                 if (thing.clear) {
                     this.clearObject(thing.img, thing.posY, thing.posX);
@@ -481,11 +449,13 @@ export default class Game
         }
 
         for (let [key, enemy] of Object.entries(this.enemies)) {
+            if (enemy === undefined) continue;
             this.drawCharacter(enemy.img);
         }
         this.drawCharacter(this.player);
 
         for (let [key, hole] of Object.entries(this.holeList)) {
+            if (hole === undefined) continue;
             if (hole.put) {
                 hole.count--;
                 if (hole.count === 0) {
@@ -501,8 +471,10 @@ export default class Game
 
             if (0 === num) {
                 let enemy = new CharacterWriter('enemy', 'down');
-                this.putCharacter(enemy, hole.posX, hole.posY);
-                this.enemies[getRandomInt(0, 999)] = {count: 30, img: enemy, holeKey: key};
+                if (!this.checkHitWall(hole)) {
+                    this.putCharacter(enemy, hole.posX, hole.posY);
+                    this.enemies[getRandomInt(0, 999)] = {count: 30, img: enemy, holeKey: key};
+                }
             } else if (1 === num) {
                 this.thingList[getRandomInt(0, 999)] = {
                     count: 30,
@@ -517,6 +489,36 @@ export default class Game
                         this.coinCount++;
                     }
                 };
+            } else if (2 === num) {
+                this.thingList[getRandomInt(0, 999)] = {
+                    count: 30,
+                    img: ONIGIRI_IMG,
+                    holeKey: key,
+                    put: false,
+                    clear: false,
+                    posY: hole.posY,
+                    posX: hole.posX,
+                    clearFunc: () => {
+                        this.message = messages.found_onigiri;
+                        if (this.hitPoint < 100) this.hitPoint += 10;
+                    }
+                };
+            } else if (3 === num) {
+                if (!this.player.equipment.includes("sword")) {
+                    this.thingList[getRandomInt(0, 999)] = {
+                        count: 30,
+                        img: SWORD_IMG,
+                        holeKey: key,
+                        put: false,
+                        clear: false,
+                        posY: hole.posY,
+                        posX: hole.posX,
+                        clearFunc: () => {
+                            this.player.equipment.push('sword');
+                            this.message = messages.found_sword;
+                        }
+                    };
+                }
             } else if (0 === getRandomInt(0, 50)) {
                 if (!this.player.equipment.includes("key")) {
                     this.thingList[getRandomInt(0, 999)] = {
@@ -707,8 +709,9 @@ export default class Game
     {
         let roomIdx = getRandomInt(0, this.stage.roomList.length-1);
         let room = this.stage.roomList[roomIdx];
-        let posY = getRandomInt(room.minY, room.maxY-CHARACTER_SIZE);
-        let posX = getRandomInt(room.minX, room.maxX-CHARACTER_SIZE);
+
+        let posY = getRandomInt(room.minY+CHARACTER_SIZE, room.maxY-CHARACTER_SIZE*2);
+        let posX = getRandomInt(room.minX+CHARACTER_SIZE, room.maxX-CHARACTER_SIZE*2);
 
         let exit = {img:STAIRS_IMG, posY:posY, posX:posX, put:false, clear: false};
         if (this.checkHitWall(exit)) {
@@ -749,22 +752,22 @@ export default class Game
         switch(e.keyCode) {
             case 37:    // arrowLeft
             case 65:    // A
-                this.player.newDirection = 'left';
+                this.move('left');
                 break;
             case 39:    // arrowRight
             case 68:    // D
-                this.player.newDirection = 'right';
+                this.move('right');
                 break;
             case 38:    // arrowUp
             case 87:    // W
-                this.player.newDirection = 'top';
+                this.move('top');
                 break;
             case 40:    // arrowDown
             case 83:    // S
-                this.player.newDirection = 'down';
+                this.move('down');
                 break;
             case 32:    // space
-                this.player.action = true;
+                this.actionEvent('dig');
         }
     }
 
@@ -779,9 +782,63 @@ export default class Game
             case 87:    // W
             case 40:    // arrowDown
             case 83:    // S
-                this.player.newDirection = null;
+                this.move(null);
                 break;
         }
+    }
+
+    chooseAnswer()
+    {
+        if (this.answer === 'Yes') {
+            this.message[1] = '  Yes';
+            this.message[2] = '> No';
+            this.answer = 'No';
+        } else {
+            this.message[1] = '> Yes';
+            this.message[2] = '  No';
+            this.answer = 'Yes';
+        }
+        this.mCanvas.fillStyle = WALL_COLOR;
+        this.mCanvas.fillRect(0 ,this.stage.height*PIXEL_SIZE , this.stage.width*PIXEL_SIZE, MESSAGE_WINDOW_HEIGHT);
+        this.mCanvas.font = "10pt monospace";
+        this.mCanvas.textAlign = "left";
+        this.mCanvas.textBaseline = "top";
+        this.writeCountWindow();
+        this.writeInformationWindow();
+        this.writeMessageWindow();
+    }
+
+    selectAnswer()
+    {
+        if (this.answer === 'Yes') {
+            if (this.player.equipment.includes("key")) {
+                this.message = messages.up_stairs;
+                this.floor++;
+                this.answer = null;
+                if (this.floor > 404) {
+                    this.gameover = true;
+                }
+                if (0 === getRandomInt(0, 50)) {
+                    this.gameclear = true;
+                }
+                this.start();
+            } else {
+                this.stop = false;
+                this.player.posY = this.player.prePosY;
+                this.player.posX = this.player.prePosX;
+                this.player.newDirection = null;
+                window.requestAnimationFrame(this.playing.bind(this));
+                this.message = messages.not_found_key;
+            }
+        } else {
+            this.stop = false;
+            this.player.posY = this.player.prePosY;
+            this.player.posX = this.player.prePosX;
+            this.player.newDirection = null;
+            window.requestAnimationFrame(this.playing.bind(this));
+            this.message = messages.stay_floor;
+        }
+        this.setEventListener('normal', this);
     }
 
     keyUpQuestion(e)
@@ -791,67 +848,111 @@ export default class Game
             case 87:    // W
             case 40:    // arrowDown
             case 83:    // S
-
-                if (this.answer === 'Yes') {
-                    this.message[1] = '  Yes';
-                    this.message[2] = '> No';
-                    this.answer = 'No';
-                } else {
-                    this.message[1] = '> Yes';
-                    this.message[2] = '  No';
-                    this.answer = 'Yes';
-                }
-                this.mCanvas.fillStyle = WALL_COLOR;
-                this.mCanvas.fillRect(0 ,this.stage.height*PIXEL_SIZE , this.stage.width*PIXEL_SIZE, MESSAGE_WINDOW_HEIGHT);
-                this.mCanvas.font = "14pt monospace";
-                this.mCanvas.textAlign = "left";
-                this.mCanvas.textBaseline = "top";
-                this.writeCountWindow();
-                this.writeInformationWindow();
-                this.writeMessageWindow();
+                this.chooseAnswer();
                 break;
             case 32:    // space
-                if (this.answer === 'Yes') {
-                    if (this.player.equipment.includes("key")) {
-                        this.message = messages.up_stairs;
-                        this.floor++;
-                        this.answer = null;
-                        if (this.floor > 404) {
-                            this.gameover = true;
-                        }
-                        if (0 === getRandomInt(0, 50)) {
-                            this.gameclear = true;
-                        }
-                        this.start();
-                    } else {
-                        this.stop = false;
-                        this.player.posY = this.player.prePosY;
-                        this.player.posX = this.player.prePosX;
-                        this.player.newDirection = null;
-                        window.requestAnimationFrame(this.playing.bind(this));
-                        this.message = messages.not_found_key;
-                    }
-
-                } else {
-                    this.stop = false;
-                    this.player.posY = this.player.prePosY;
-                    this.player.posX = this.player.prePosX;
-                    this.player.newDirection = null;
-                    window.requestAnimationFrame(this.playing.bind(this));
-
-                    this.message = messages.stay_floor;
-                }
-                window.removeEventListener("keyup", this.keyUpEvent);
-
-                this.keyUpEvent = this.keyUp.bind(this);
-                window.addEventListener("keyup", this.keyUpEvent);
-                window.addEventListener("keydown", this.keyDownEvent);
+                this.selectAnswer();
+                break;
         }
     }
 
-    keyUpContinue(e)
+    newGame(e)
     {
         this.initialize = true;
         this.start();
+    }
+
+    move(direction)
+    {
+        this.player.newDirection = direction;
+    }
+
+    actionEvent(action)
+    {
+        switch(action) {
+            case 'dig':
+                this.player.digAction = true;
+                break;
+            case 'attack':
+                this.player.attackAction = true;
+                break;
+        }
+    }
+
+    setEventListener(eventType, user)
+    {
+        for (const [key, event] of Object.entries(user.eventKeys)) {
+            handler.removeListener(event);
+        }
+        if (eventType === 'normal') {
+            // キーボード操作
+            user.eventKeys.keyup = handler.addListener(window, 'keyup', user.keyUp.bind(user), false);
+            user.eventKeys.keydown = handler.addListener(window, 'keydown', user.keyDown.bind(user), false);
+
+            //マウス操作
+            user.eventKeys.mouseDownRight = handler.addListener(document.getElementById('ArrowRight'), 'mousedown', e => user.move('right'), false);
+            user.eventKeys.mouseDownLeft = handler.addListener(document.getElementById('ArrowLeft'), 'mousedown', e => user.move('left'), false);
+            user.eventKeys.mouseDownUp = handler.addListener(document.getElementById('ArrowUp'), 'mousedown', e => user.move('top'), false);
+            user.eventKeys.mouseDownDown = handler.addListener(document.getElementById('ArrowDown'), 'mousedown', e => user.move('down'), false);
+
+            user.eventKeys.mouseUpRight = handler.addListener(document.getElementById('ArrowRight'), 'mouseup', e => user.move(null), false);
+            user.eventKeys.mouseUpLeft = handler.addListener(document.getElementById('ArrowLeft'), 'mouseup', e => user.move(null), false);
+            user.eventKeys.mouseUpUp = handler.addListener(document.getElementById('ArrowUp'), 'mouseup', e => user.move(null), false);
+            user.eventKeys.mouseUpDown = handler.addListener(document.getElementById('ArrowDown'), 'mouseup', e => user.move(null), false);
+
+            user.eventKeys.mouseDownDig = handler.addListener(document.getElementById('a'), 'mousedown', e => user.actionEvent('dig'), false);
+            user.eventKeys.mouseDownAttack = handler.addListener(document.getElementById('b'), 'mousedown', e => user.actionEvent('attack'), false);
+
+            //タッチ操作
+            user.eventKeys.touchStartRight = handler.addListener(document.getElementById('ArrowRight'), 'touchstart', e => user.move('right'), false);
+            user.eventKeys.touchStartLeft = handler.addListener(document.getElementById('ArrowLeft'), 'touchstart', e => user.move('left'), false);
+            user.eventKeys.touchStartUp = handler.addListener(document.getElementById('ArrowUp'), 'touchstart', e => user.move('top'), false);
+            user.eventKeys.touchStartDown = handler.addListener(document.getElementById('ArrowDown'), 'touchstart', e => user.move('down'), false);
+
+            user.eventKeys.touchEndRight = handler.addListener(document.getElementById('ArrowRight'), 'touchend', e => user.move(null), false);
+            user.eventKeys.touchEndLeft = handler.addListener(document.getElementById('ArrowLeft'), 'touchend', e => user.move(null), false);
+            user.eventKeys.touchEndUp = handler.addListener(document.getElementById('ArrowUp'), 'touchend', e => user.move(null), false);
+            user.eventKeys.touchEndDown = handler.addListener(document.getElementById('ArrowDown'), 'touchend', e => user.move(null), false);
+
+            user.eventKeys.touchStartDig = handler.addListener(document.getElementById('a'), 'touchstart', e => user.actionEvent('dig'), false);
+            user.eventKeys.touchStartAttack = handler.addListener(document.getElementById('b'), 'touchstart', e => user.actionEvent('attack'), false);
+            return;
+        } else if (eventType === 'question') {
+            user.eventKeys.keyup = handler.addListener(window, 'keyup', user.keyUpQuestion.bind(user), false);
+
+            //マウス操作
+            user.eventKeys.mouseUpUp = handler.addListener(document.getElementById('ArrowUp'), 'mouseup', e => user.chooseAnswer(), false);
+            user.eventKeys.mouseUpDown = handler.addListener(document.getElementById('ArrowDown'), 'mouseup', e => user.chooseAnswer(), false);
+
+            user.eventKeys.mouseDownDig = handler.addListener(document.getElementById('a'), 'mousedown', e => user.selectAnswer(), false);
+            user.eventKeys.mouseDownAttack = handler.addListener(document.getElementById('b'), 'mousedown', e => user.selectAnswer(), false);
+
+            //タッチ操作
+            user.eventKeys.touchEndUp = handler.addListener(document.getElementById('ArrowUp'), 'touchend', e => user.chooseAnswer(), false);
+            user.eventKeys.touchEndDown = handler.addListener(document.getElementById('ArrowDown'), 'touchend', e => user.chooseAnswer(), false);
+
+            user.eventKeys.touchStartDig = handler.addListener(document.getElementById('a'), 'touchstart', e => user.selectAnswer(), false);
+            user.eventKeys.touchStartAttack = handler.addListener(document.getElementById('b'), 'touchstart', e => user.selectAnswer(), false);
+        } else if (eventType === 'continue') {
+            user.eventKeys.keyup = handler.addListener(window, 'keyup', user.newGame.bind(user), false);
+
+            //マウス操作
+            user.eventKeys.mouseUpRight = handler.addListener(document.getElementById('ArrowRight'), 'mouseup', user.newGame.bind(user), false);
+            user.eventKeys.mouseUpLeft = handler.addListener(document.getElementById('ArrowLeft'), 'mouseup', user.newGame.bind(user), false);
+            user.eventKeys.mouseUpUp = handler.addListener(document.getElementById('ArrowUp'), 'mouseup', user.newGame.bind(user), false);
+            user.eventKeys.mouseUpDown = handler.addListener(document.getElementById('ArrowDown'), 'mouseup', user.newGame.bind(user), false);
+
+            user.eventKeys.mouseDownDig = handler.addListener(document.getElementById('a'), 'mousedown', user.newGame.bind(user), false);
+            user.eventKeys.mouseDownAttack = handler.addListener(document.getElementById('b'), 'mousedown', user.newGame.bind(user), false);
+
+            //タッチ操作
+            user.eventKeys.touchEndRight = handler.addListener(document.getElementById('ArrowRight'), 'touchend', user.newGame.bind(user), false);
+            user.eventKeys.touchEndLeft = handler.addListener(document.getElementById('ArrowLeft'), 'touchend', user.newGame.bind(user), false);
+            user.eventKeys.touchEndUp = handler.addListener(document.getElementById('ArrowUp'), 'touchend', user.newGame.bind(user), false);
+            user.eventKeys.touchEndDown = handler.addListener(document.getElementById('ArrowDown'), 'touchend', user.newGame.bind(user), false);
+
+            user.eventKeys.touchStartDig = handler.addListener(document.getElementById('a'), 'touchstart', user.newGame.bind(user), false);
+            user.eventKeys.touchStartAttack = handler.addListener(document.getElementById('b'), 'touchstart', user.newGame.bind(user), false);
+        }
     }
 }

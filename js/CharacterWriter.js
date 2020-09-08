@@ -14,6 +14,8 @@ export default class CharacterWriter
         this.prePosX = null;
         this.hit = false;
         this.equipment = [];
+        this.digAction = false;
+        this.attackAction = false;
 
         this.newDirection = null;
         this.currentDirection = direction;
