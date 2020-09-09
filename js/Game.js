@@ -14,8 +14,11 @@ export default class Game
         this.player = new CharacterWriter('player', 'top');
         this.message = messages.initial_message;
         this.eventKeys = {};
+        this.attackCount = 0;
+        this.hitEnemyKey = false;
 
         this.hitPoint = 100;
+        this.hitCount = 0;
         this.start();
     }
 
@@ -31,11 +34,11 @@ export default class Game
             this.player.equipment = [];
             this.message = messages.initial_message;
             this.hitPoint = 100;
-
             this.setEventListener('normal', this);
 
             this.initialize = false;
         }
+        this.hitEnemyKey = false;
         this.zombieCount = 0;
         if (this.stop) {
             this.mCanvas.clearRect(0, 0, this.stage.canvasEl.width, this.stage.canvasEl.height);
@@ -46,12 +49,15 @@ export default class Game
         this.stage.draw();
         this.holeList = {};
         this.thingList = {};
-        this.hit = false;
         this.baseStage = JSON.parse(JSON.stringify(this.stage.img));
         this.currentStage = JSON.parse(JSON.stringify(this.baseStage));
         this.putCharacter(this.player);
 
         this.enemies = {};
+        // let enemy = new CharacterWriter('enemy', 'down');
+        // this.putCharacter(enemy);
+        // this.enemies[getRandomInt(0, 999)] = {count: 5, img: enemy, holeKey: 0};
+
         this.enemyMove = 5;
         this.stop = false;
 
@@ -125,7 +131,7 @@ export default class Game
     playing(timestamp)
     {
         const elapsed = (timestamp - this.prevTimestamp) / 1000;
-        if (elapsed <= FRAME_TIME && !this.hit){
+        if (elapsed <= FRAME_TIME && !this.player.hit){
             window.requestAnimationFrame(this.playing.bind(this));
             return;
         }
@@ -136,78 +142,187 @@ export default class Game
 
         this.currentStage = JSON.parse(JSON.stringify(this.baseStage));
 
-        this.newFrames = {};
-        this.preFrames = {};
-
-        if (!this.player.hit) {
-            // プレイヤーの動作
-            this.moveCharacter(this.player, this.hit);
-        } else {
-            this.player.hit = false;
+        let type = 'normal';
+        if (this.player.attackAction === true && this.player.equipment.includes("sword")) {
+            type = 'attack';
+        } else if (this.player.digAction === true && this.player.equipment.includes("shovel")) {
+            type = 'dig';
         }
 
-        // 敵の動作
-        for (const [key, enemy] of Object.entries(this.enemies)) {
-            if (enemy === undefined) continue;
-            if (enemy.count >= 0) {
-                enemy.count--;
-                continue;
-            }
 
-            if (this.holeList[enemy.holeKey]) {
-                this.zombieCount++;
-                if (this.zombieCount === 50) {
-                    this.gameover = true;
-                    this.start();
+
+
+
+
+        if (this.player.attackAction === true && this.player.equipment.includes("sword")) {
+            this.attackCount--;
+            this.player.prePosX = this.player.posX;
+            this.player.prePosY = this.player.posY;
+            for (let [key, enemy] of Object.entries(this.enemies)) {
+                if (enemy === undefined) continue;
+                if (key === this.hitEnemyKey) continue;
+                enemy = enemy.img;
+                enemy.prePosX = enemy.posX;
+                enemy.prePosY = enemy.posY;
+                for (let row=0;row<enemy.img.length; row++) {
+                    const currentPosY = enemy.posY + row;
+                    if (undefined === this.currentStage[currentPosY]) {
+                        continue;
+                    }
+                    for (let col=0; col<enemy.img[row].length; col++) {
+                        const currentPosX = enemy.posX + col;
+                        if (undefined === this.currentStage[currentPosY][currentPosX]) {
+                            continue;
+                        }
+                        let color = enemy.img[row][col];
+                        if ('F' !== color) {
+                            this.currentStage[currentPosY][currentPosX] = color;
+                        }
+                    }
                 }
-                this.holeList[enemy.holeKey].clear = true;
             }
-            enemy.img.newDirection = null;
-            if (this.enemyMove === 0) {
-                let constDirection = ['top', 'down', 'left', 'right', null];
-                let direction = constDirection[getRandomInt(0, 4)];
-                if (direction === enemy.img.newDirection) direction = null;
-                enemy.img.newDirection = direction;
-            }
-            this.moveCharacter(enemy.img, false);
-        }
 
-        if (this.enemyMove === 0) {
-            this.enemyMove = 5;
+            if (this.attackCount === 1) {
+                switch (this.player.currentDirection) {
+                    case 'top':
+                        this.player.posY -= 2;
+                        break;
+                    case 'down':
+                        this.player.posY += 2;
+                        break;
+                    case 'right':
+                        this.player.posX += 2;
+                        break;
+                    case 'left':
+                        this.player.posX -= 2;
+                        break;
+                }
+
+                let attackPosition = this.player.attack();
+                for (let row=0;row<this.player.img.length; row++) {
+                    for (let col=0; col<this.player.img[row].length; col++) {
+                        this.hitEnemyKey = this.checkHitEnemies(row, col, attackPosition);
+                        if (false !== this.hitEnemyKey) {
+                            break;
+                        }
+                    }
+                    if (false !== this.hitEnemyKey) {
+                        break;
+                    }
+                }
+            } else if (this.attackCount === 0) {
+                this.player.attackAction = false;
+                switch (this.player.currentDirection) {
+                    case 'top':
+                        this.player.posY += 2;
+                        break;
+                    case 'down':
+                        this.player.posY -= 2;
+                        break;
+                    case 'right':
+                        this.player.posX -= 2;
+                        break;
+                    case 'left':
+                        this.player.posX += 2;
+                        break;
+                }
+                if (false !== this.hitEnemyKey) {
+                    delete this.enemies[this.hitEnemyKey];
+                    this.message = ["hit enemy!!!"];
+                    this.hitEnemyKey = false;
+                }
+            }
+            for (let row=0;row<this.player.img.length; row++) {
+                const currentPosY = this.player.posY + row;
+                if (undefined === this.currentStage[currentPosY]) {
+                    continue;
+                }
+                for (let col=0; col<this.player.img[row].length; col++) {
+                    const currentPosX = this.player.posX + col;
+                    if (undefined === this.currentStage[currentPosY][currentPosX]) {
+                        continue;
+                    }
+                    let color = this.player.img[row][col];
+                    if ('F' !== color) {
+                        this.currentStage[currentPosY][currentPosX] = color;
+                    }
+                }
+            }
+
         } else {
-            this.enemyMove--;
-        }
+            if (!this.player.hit) {
+                // プレイヤーの動作
+                this.moveCharacter(this.player, this.player.hit);
+            } else {
+                this.hitCount--;
+                if (this.hitCount === 0) {
+                    this.player.hit = false;
+                }
+            }
 
-        if (this.player.digAction) {
-            this.player.digAction = false;
+            // 敵の動作
+            for (const [key, enemy] of Object.entries(this.enemies)) {
+                if (enemy === undefined) continue;
+                if (enemy.count >= 0) {
+                    enemy.count--;
+                    continue;
+                }
 
-            if (this.player.equipment.includes("shovel")) {
-                let hole = this.player.dig();
-                let hit = true;
-                hit = this.checkHitWall(hole);
+                if (this.holeList[enemy.holeKey]) {
+                    this.zombieCount++;
+                    if (this.zombieCount === 50) {
+                        this.gameover = true;
+                        this.start();
+                    }
+                    this.holeList[enemy.holeKey].clear = true;
+                }
+                enemy.img.newDirection = null;
+                if (this.enemyMove === 0) {
+                    let constDirection = ['top', 'down', 'left', 'right', null];
+                    let direction = constDirection[getRandomInt(0, 4)];
+                    if (direction === enemy.img.newDirection) direction = null;
+                    enemy.img.newDirection = direction;
+                }
+                this.moveCharacter(enemy.img, false);
+            }
 
-                if (!hit) {
-                    for (let row=0;row<hole.img.length;row++) {
-                        for (let col=0;col<hole.img[0].length;col++) {
-                            if (this.checkHitThing(row, col, hole)) hit = true;
-                            if (this.checkHitExit(row, col, hole)) hit = true;
+            if (this.enemyMove === 0) {
+                this.enemyMove = 5;
+            } else {
+                this.enemyMove--;
+            }
+
+            if (this.player.digAction) {
+                this.player.digAction = false;
+
+                if (this.player.equipment.includes("shovel")) {
+                    let hole = this.player.dig();
+                    let hit = true;
+                    hit = this.checkHitWall(hole);
+
+                    if (!hit) {
+                        for (let row=0;row<hole.img.length;row++) {
+                            for (let col=0;col<hole.img[0].length;col++) {
+                                if (this.checkHitThing(row, col, hole)) hit = true;
+                                if (this.checkHitExit(row, col, hole)) hit = true;
+                                if (hit) {
+                                    break;
+                                }
+                            }
                             if (hit) {
                                 break;
                             }
                         }
-                        if (hit) {
-                            break;
-                        }
+                    }
+
+                    if (!hit) {
+                        this.holeList[getRandomInt(0,999)] = hole;
                     }
                 }
-
-                if (!hit) {
-                    this.holeList[getRandomInt(0,999)] = hole;
-                }
             }
-        }
 
-        this.checkHit();
+            this.checkHit();
+        }
 
         this.drawMain();
         this.prevTimestamp = timestamp;
@@ -231,12 +346,11 @@ export default class Game
         }
     }
 
-    moveCharacter(character, hit)
+    moveCharacter(character, hit, checkWall=true)
     {
         if (!hit) {
             character.prePosX = character.posX;
             character.prePosY = character.posY;
-            this.hit = false;
         }
         if (null !== character.newDirection) {
             if (character.currentDirection !== character.newDirection) {
@@ -258,7 +372,7 @@ export default class Game
                     break;
             }
 
-            if (this.checkHitWall(character)) {
+            if (checkWall && this.checkHitWall(character)) {
                 character.posY = character.prePosY;
                 character.posX = character.prePosX;
             }
@@ -312,48 +426,52 @@ export default class Game
         return false;
     }
 
-    checkHitEnemies(row, col)
+    checkHitEnemies(row, col, object)
     {
         for (const [key, enemy] of Object.entries(this.enemies)) {
             if (enemy === undefined) continue;
             for (let eRow=0;eRow<enemy.img.img .length; eRow++) {
                 for (let eCol=0; eCol<enemy.img.img[eRow].length; eCol++) {
                     if (
-                        'F' !== this.player.img[row][col] &&
+                        'F' !== object.img[row][col] &&
                         'F' !== enemy.img.img[eRow][eCol] &&
-                        this.player.posY + row === enemy.img.posY + eRow &&
-                        this.player.posX + col === enemy.img.posX + eCol
+                        object.posY + row === enemy.img.posY + eRow &&
+                        object.posX + col === enemy.img.posX + eCol
                     ) {
-                        switch (this.player.newDirection) {
-                            case 'top':
-                                this.player.posY += 10;
-                                break;
-                            case 'down':
-                                this.player.posY -= 10;
-                                break;
-                            case 'right':
-                                this.player.posX -= 10;
-                                break;
-                            case 'left':
-                                this.player.posX += 10;
-                                break;
+                        if (object.index === 'player') {
+                            switch (object.newDirection) {
+                                case 'top':
+                                    object.posY += 10;
+                                    break;
+                                case 'down':
+                                    object.posY -= 10;
+                                    break;
+                                case 'right':
+                                    object.posX -= 10;
+                                    break;
+                                case 'left':
+                                    object.posX += 10;
+                                    break;
+                            }
+                            if (this.checkHitWall(object)) {
+                                object.newDirection = null;
+                                this.putCharacter(object);
+                            }
+                            object.hit = true;
+                            this.hitCount = 2;
+                            this.message = messages.zombie_attack;
+                            this.hitPoint -= 10;
+                            if (this.hitPoint <= 0) {
+                                this.gameover = true;
+                                this.start();
+                            }
                         }
-                        if (this.checkHitWall(this.player)) {
-                            this.player.newDirection = null;
-                            this.putCharacter(this.player);
-                        }
-                        this.player.hit = true;
-                        this.message = messages.zombie_attack;
-                        this.hitPoint -= 10;
-                        if (this.hitPoint <= 0) {
-                            this.gameover = true;
-                            this.start();
-                        }
-                        return true;
+                        return key;
                     }
                 }
             }
         }
+        return false;
     }
 
     checkHitThing(row, col, target)
@@ -395,7 +513,7 @@ export default class Game
     {
         for (let row=0;row<this.player.img.length; row++) {
             for (let col=0; col<this.player.img[row].length; col++) {
-                if (this.checkHitEnemies(row, col)) return true;
+                if (false !== this.checkHitEnemies(row, col, this.player)) return true;
                 if (this.checkHitThing(row, col, this.player)) return true;
                 if (this.checkHitExit(row, col, this.player)) {
                     this.message = messages.up_or_stay;
@@ -514,7 +632,9 @@ export default class Game
                         posY: hole.posY,
                         posX: hole.posX,
                         clearFunc: () => {
-                            this.player.equipment.push('sword');
+                            if (!this.player.equipment.includes("sword")) {
+                                this.player.equipment.push('sword');
+                            }
                             this.message = messages.found_sword;
                         }
                     };
@@ -766,8 +886,12 @@ export default class Game
             case 83:    // S
                 this.move('down');
                 break;
+            case 13:    // Enter
+                this.actionEvent('attack');
+                break;
             case 32:    // space
                 this.actionEvent('dig');
+                break;
         }
     }
 
@@ -875,6 +999,7 @@ export default class Game
                 break;
             case 'attack':
                 this.player.attackAction = true;
+                this.attackCount = 2;
                 break;
         }
     }

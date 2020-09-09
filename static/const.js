@@ -286,8 +286,14 @@ const KEY_IMG = [
 const PIXEL_SIZE = 2;
 const WALL_COLOR = "rgb(100, 100, 100)";
 const GROUND_COLOR = "rgb(  0,176, 80)";
-const FPS = 50;
+const FPS = 60;
 const FRAME_TIME = 1 / FPS;
+
+const PLAYER_SIGN = 'P';
+const ENEMY_SIGN = 'E';
+const THING_SIGN = 'T';
+const HOLE_SIGN = 'H';
+const EXIT_SIGN = 'E';
 
 const COLORS = {
     '0': GROUND_COLOR,
