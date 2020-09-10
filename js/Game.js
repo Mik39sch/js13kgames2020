@@ -144,138 +144,56 @@ export default class Game
 
         let type = 'normal';
         if (this.player.attackAction === true && this.player.equipment.includes("sword")) {
-            type = 'attack';
+            if (this.attackCount === 2) {
+                type = 'attack1';
+            } else if (this.attackCount === 1) {
+                type = 'attack2';
+            } else {
+                this.player.attackAction = false;
+                type = 'normal';
+            }
+            this.attackCount--;
         } else if (this.player.digAction === true && this.player.equipment.includes("shovel")) {
             type = 'dig';
+            this.player.digAction = false;
+        } else if (this.player.hit) {
+            type = 'hit';
+            if (this.checkHitWall(this.player)) {
+                this.player.newDirection = null;
+                this.putCharacter(this.player);
+            }
+            this.player.hit = false;
         }
 
+        // プレイヤーの動作
+        this.moveCharacter({
+            character: this.player,
+            actionType: type
+        });
 
-
-
-
-
-        if (this.player.attackAction === true && this.player.equipment.includes("sword")) {
-            this.attackCount--;
-            this.player.prePosX = this.player.posX;
-            this.player.prePosY = this.player.posY;
-            for (let [key, enemy] of Object.entries(this.enemies)) {
-                if (enemy === undefined) continue;
-                if (key === this.hitEnemyKey) continue;
-                enemy = enemy.img;
-                enemy.prePosX = enemy.posX;
-                enemy.prePosY = enemy.posY;
-                for (let row=0;row<enemy.img.length; row++) {
-                    const currentPosY = enemy.posY + row;
-                    if (undefined === this.currentStage[currentPosY]) {
-                        continue;
-                    }
-                    for (let col=0; col<enemy.img[row].length; col++) {
-                        const currentPosX = enemy.posX + col;
-                        if (undefined === this.currentStage[currentPosY][currentPosX]) {
-                            continue;
-                        }
-                        let color = enemy.img[row][col];
-                        if ('F' !== color) {
-                            this.currentStage[currentPosY][currentPosX] = color;
-                        }
-                    }
-                }
+        // 敵の動作
+        for (const [key, enemy] of Object.entries(this.enemies)) {
+            if (enemy === undefined) continue;
+            if (enemy.count >= 0) {
+                enemy.count--;
+                continue;
+            }
+            if (this.hitEnemyKey === key) {
+                enemy.clear = true;
+                continue;
             }
 
-            if (this.attackCount === 1) {
-                switch (this.player.currentDirection) {
-                    case 'top':
-                        this.player.posY -= 2;
-                        break;
-                    case 'down':
-                        this.player.posY += 2;
-                        break;
-                    case 'right':
-                        this.player.posX += 2;
-                        break;
-                    case 'left':
-                        this.player.posX -= 2;
-                        break;
+            if (this.holeList[enemy.holeKey]) {
+                this.zombieCount++;
+                if (this.zombieCount === 50) {
+                    this.gameover = true;
+                    this.start();
+                    return;
                 }
-
-                let attackPosition = this.player.attack();
-                for (let row=0;row<this.player.img.length; row++) {
-                    for (let col=0; col<this.player.img[row].length; col++) {
-                        this.hitEnemyKey = this.checkHitEnemies(row, col, attackPosition);
-                        if (false !== this.hitEnemyKey) {
-                            break;
-                        }
-                    }
-                    if (false !== this.hitEnemyKey) {
-                        break;
-                    }
-                }
-            } else if (this.attackCount === 0) {
-                this.player.attackAction = false;
-                switch (this.player.currentDirection) {
-                    case 'top':
-                        this.player.posY += 2;
-                        break;
-                    case 'down':
-                        this.player.posY -= 2;
-                        break;
-                    case 'right':
-                        this.player.posX -= 2;
-                        break;
-                    case 'left':
-                        this.player.posX += 2;
-                        break;
-                }
-                if (false !== this.hitEnemyKey) {
-                    delete this.enemies[this.hitEnemyKey];
-                    this.message = ["hit enemy!!!"];
-                    this.hitEnemyKey = false;
-                }
-            }
-            for (let row=0;row<this.player.img.length; row++) {
-                const currentPosY = this.player.posY + row;
-                if (undefined === this.currentStage[currentPosY]) {
-                    continue;
-                }
-                for (let col=0; col<this.player.img[row].length; col++) {
-                    const currentPosX = this.player.posX + col;
-                    if (undefined === this.currentStage[currentPosY][currentPosX]) {
-                        continue;
-                    }
-                    let color = this.player.img[row][col];
-                    if ('F' !== color) {
-                        this.currentStage[currentPosY][currentPosX] = color;
-                    }
-                }
+                this.holeList[enemy.holeKey].clear = true;
             }
 
-        } else {
-            if (!this.player.hit) {
-                // プレイヤーの動作
-                this.moveCharacter(this.player, this.player.hit);
-            } else {
-                this.hitCount--;
-                if (this.hitCount === 0) {
-                    this.player.hit = false;
-                }
-            }
-
-            // 敵の動作
-            for (const [key, enemy] of Object.entries(this.enemies)) {
-                if (enemy === undefined) continue;
-                if (enemy.count >= 0) {
-                    enemy.count--;
-                    continue;
-                }
-
-                if (this.holeList[enemy.holeKey]) {
-                    this.zombieCount++;
-                    if (this.zombieCount === 50) {
-                        this.gameover = true;
-                        this.start();
-                    }
-                    this.holeList[enemy.holeKey].clear = true;
-                }
+            if (type !== 'attack2') {
                 enemy.img.newDirection = null;
                 if (this.enemyMove === 0) {
                     let constDirection = ['top', 'down', 'left', 'right', null];
@@ -283,47 +201,70 @@ export default class Game
                     if (direction === enemy.img.newDirection) direction = null;
                     enemy.img.newDirection = direction;
                 }
-                this.moveCharacter(enemy.img, false);
+                if (type === 'attack1') {
+                    enemy.img.newDirection = null;
+                }
+                this.moveCharacter({
+                    character:enemy.img,
+                    actionType:'normal'
+                });
             }
+        }
+        if (this.enemyMove === 0) {
+            this.enemyMove = 5;
+        } else {
+            this.enemyMove--;
+        }
 
-            if (this.enemyMove === 0) {
-                this.enemyMove = 5;
+        if (type === 'dig' || type==='attack1') {
+            let obj;
+            if (type === 'dig') {
+                obj = this.player.dig();
             } else {
-                this.enemyMove--;
+                obj = this.player.attack();
             }
 
-            if (this.player.digAction) {
-                this.player.digAction = false;
+            let hit = false;
+            if (type === 'dig') {
+                hit = this.checkHitWall(obj);
+            }
 
-                if (this.player.equipment.includes("shovel")) {
-                    let hole = this.player.dig();
-                    let hit = true;
-                    hit = this.checkHitWall(hole);
-
-                    if (!hit) {
-                        for (let row=0;row<hole.img.length;row++) {
-                            for (let col=0;col<hole.img[0].length;col++) {
-                                if (this.checkHitThing(row, col, hole)) hit = true;
-                                if (this.checkHitExit(row, col, hole)) hit = true;
-                                if (hit) {
-                                    break;
-                                }
-                            }
-                            if (hit) {
+            if (!hit) {
+                for (let row=0;row<obj.img.length;row++) {
+                    for (let col=0;col<obj.img[0].length;col++) {
+                        if (type === 'dig') {
+                            if (
+                                this.checkHitThing(row, col, obj) ||
+                                this.checkHitExit(row, col, obj)
+                            ) {
+                                hit = true;
                                 break;
                             }
                         }
-                    }
 
-                    if (!hit) {
-                        this.holeList[getRandomInt(0,999)] = hole;
+                        if (type === 'attack1') {
+                            this.hitEnemyKey = this.checkHitEnemies(row, col, obj);
+                            if (this.hitEnemyKey !== false) {
+                                break;
+                            }
+                        }
+
+                    }
+                    if (type === 'dig' && hit) {
+                        break;
+                    }
+                    if (type === 'attack1' && this.hitEnemyKey !== false) {
+                        break;
                     }
                 }
             }
 
+            if (type === 'dig' && !hit) {
+                this.holeList[getRandomInt(0,999)] = obj;
+            }
+        } else if(type !== 'hit'){
             this.checkHit();
         }
-
         this.drawMain();
         this.prevTimestamp = timestamp;
         window.requestAnimationFrame(this.playing.bind(this));
@@ -346,37 +287,54 @@ export default class Game
         }
     }
 
-    moveCharacter(character, hit, checkWall=true)
+    moveCharacter({character, actionType})
     {
-        if (!hit) {
-            character.prePosX = character.posX;
-            character.prePosY = character.posY;
-        }
-        if (null !== character.newDirection) {
+        character.prePosX = character.posX;
+        character.prePosY = character.posY;
+
+        let moveDistance = 1;
+        let direction = character.currentDirection;
+        if (null === character.newDirection) {
+            moveDistance = 0;
+            switch(actionType) {
+                case 'attack1':
+                    moveDistance = 2;
+                    break;
+                case 'attack2':
+                    moveDistance = -2;
+                    break;
+                case 'hit':
+                    moveDistance = -10;
+                    break;
+            }
+        } else {
+            direction = character.newDirection;
             if (character.currentDirection !== character.newDirection) {
                 character.currentDirection = character.newDirection;
                 character.turn();
             }
-            switch (character.newDirection) {
-                case 'top':
-                    character.posY--;
-                    break;
-                case 'down':
-                    character.posY++;
-                    break;
-                case 'right':
-                    character.posX++;
-                    break;
-                case 'left':
-                    character.posX--;
-                    break;
-            }
-
-            if (checkWall && this.checkHitWall(character)) {
-                character.posY = character.prePosY;
-                character.posX = character.prePosX;
-            }
         }
+
+        switch (direction) {
+            case 'top':
+                character.posY -= moveDistance;
+                break;
+            case 'down':
+                character.posY += moveDistance;
+                break;
+            case 'right':
+                character.posX += moveDistance;
+                break;
+            case 'left':
+                character.posX -= moveDistance;
+                break;
+        }
+
+        if (this.checkHitWall(character)) {
+            character.posY = character.prePosY;
+            character.posX = character.prePosX;
+        }
+
         for (let row=0;row<character.img.length; row++) {
             const currentPosY = character.posY + row;
             if (undefined === this.currentStage[currentPosY]) {
@@ -439,24 +397,6 @@ export default class Game
                         object.posX + col === enemy.img.posX + eCol
                     ) {
                         if (object.index === 'player') {
-                            switch (object.newDirection) {
-                                case 'top':
-                                    object.posY += 10;
-                                    break;
-                                case 'down':
-                                    object.posY -= 10;
-                                    break;
-                                case 'right':
-                                    object.posX -= 10;
-                                    break;
-                                case 'left':
-                                    object.posX += 10;
-                                    break;
-                            }
-                            if (this.checkHitWall(object)) {
-                                object.newDirection = null;
-                                this.putCharacter(object);
-                            }
                             object.hit = true;
                             this.hitCount = 2;
                             this.message = messages.zombie_attack;
@@ -568,6 +508,11 @@ export default class Game
 
         for (let [key, enemy] of Object.entries(this.enemies)) {
             if (enemy === undefined) continue;
+            if (enemy.clear === true) {
+                this.clearObject(enemy.img.img, enemy.img.posY, enemy.img.posX);
+                delete this.enemies[key];
+                continue;
+            }
             this.drawCharacter(enemy.img);
         }
         this.drawCharacter(this.player);
