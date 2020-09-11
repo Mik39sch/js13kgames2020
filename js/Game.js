@@ -133,12 +133,6 @@ export default class Game
 
     playing(timestamp)
     {
-        const elapsed = (timestamp - this.prevTimestamp) / 1000;
-        // if (elapsed <= FRAME_TIME && !this.player.hit){
-        //     window.requestAnimationFrame(this.playing.bind(this));
-        //     return;
-        // }
-
         if (this.stop) {
             return;
         }
@@ -279,7 +273,6 @@ export default class Game
             this.checkHit();
         }
         this.drawMain();
-        this.prevTimestamp = timestamp;
         window.requestAnimationFrame(this.playing.bind(this));
     }
 
@@ -968,74 +961,12 @@ export default class Game
             delete user.eventKeys[key];
         }
         if (eventType === 'normal') {
-            // キーボード操作
             user.eventKeys.keyup = handler.addListener(window, 'keyup', user.keyUp.bind(user), false);
             user.eventKeys.keydown = handler.addListener(window, 'keydown', user.keyDown.bind(user), false);
-
-            //マウス操作
-            user.eventKeys.mouseDownRight = handler.addListener(document.getElementById('ArrowRight'), 'mousedown', e => user.move('right'), false);
-            user.eventKeys.mouseDownLeft = handler.addListener(document.getElementById('ArrowLeft'), 'mousedown', e => user.move('left'), false);
-            user.eventKeys.mouseDownUp = handler.addListener(document.getElementById('ArrowUp'), 'mousedown', e => user.move('top'), false);
-            user.eventKeys.mouseDownDown = handler.addListener(document.getElementById('ArrowDown'), 'mousedown', e => user.move('down'), false);
-
-            user.eventKeys.mouseUpRight = handler.addListener(document.getElementById('ArrowRight'), 'mouseup', e => user.move(null), false);
-            user.eventKeys.mouseUpLeft = handler.addListener(document.getElementById('ArrowLeft'), 'mouseup', e => user.move(null), false);
-            user.eventKeys.mouseUpUp = handler.addListener(document.getElementById('ArrowUp'), 'mouseup', e => user.move(null), false);
-            user.eventKeys.mouseUpDown = handler.addListener(document.getElementById('ArrowDown'), 'mouseup', e => user.move(null), false);
-
-            user.eventKeys.mouseDownDig = handler.addListener(document.getElementById('a'), 'mousedown', e => user.actionEvent('dig'), false);
-            user.eventKeys.mouseDownAttack = handler.addListener(document.getElementById('b'), 'mousedown', e => user.actionEvent('attack'), false);
-
-            //タッチ操作
-            user.eventKeys.touchStartRight = handler.addListener(document.getElementById('ArrowRight'), 'touchstart', e => user.move('right'), false);
-            user.eventKeys.touchStartLeft = handler.addListener(document.getElementById('ArrowLeft'), 'touchstart', e => user.move('left'), false);
-            user.eventKeys.touchStartUp = handler.addListener(document.getElementById('ArrowUp'), 'touchstart', e => user.move('top'), false);
-            user.eventKeys.touchStartDown = handler.addListener(document.getElementById('ArrowDown'), 'touchstart', e => user.move('down'), false);
-
-            user.eventKeys.touchEndRight = handler.addListener(document.getElementById('ArrowRight'), 'touchend', e => user.move(null), false);
-            user.eventKeys.touchEndLeft = handler.addListener(document.getElementById('ArrowLeft'), 'touchend', e => user.move(null), false);
-            user.eventKeys.touchEndUp = handler.addListener(document.getElementById('ArrowUp'), 'touchend', e => user.move(null), false);
-            user.eventKeys.touchEndDown = handler.addListener(document.getElementById('ArrowDown'), 'touchend', e => user.move(null), false);
-
-            user.eventKeys.touchStartDig = handler.addListener(document.getElementById('a'), 'touchstart', e => user.actionEvent('dig'), false);
-            user.eventKeys.touchStartAttack = handler.addListener(document.getElementById('b'), 'touchstart', e => user.actionEvent('attack'), false);
-            return;
         } else if (eventType === 'question') {
             user.eventKeys.keyup = handler.addListener(window, 'keyup', user.keyUpQuestion.bind(user), false);
-
-            //マウス操作
-            user.eventKeys.mouseUpUp = handler.addListener(document.getElementById('ArrowUp'), 'mouseup', e => user.chooseAnswer(), false);
-            user.eventKeys.mouseUpDown = handler.addListener(document.getElementById('ArrowDown'), 'mouseup', e => user.chooseAnswer(), false);
-
-            user.eventKeys.mouseDownDig = handler.addListener(document.getElementById('a'), 'mousedown', e => user.selectAnswer(), false);
-            user.eventKeys.mouseDownAttack = handler.addListener(document.getElementById('b'), 'mousedown', e => user.selectAnswer(), false);
-
-            //タッチ操作
-            user.eventKeys.touchEndUp = handler.addListener(document.getElementById('ArrowUp'), 'touchend', e => user.chooseAnswer(), false);
-            user.eventKeys.touchEndDown = handler.addListener(document.getElementById('ArrowDown'), 'touchend', e => user.chooseAnswer(), false);
-
-            user.eventKeys.touchStartDig = handler.addListener(document.getElementById('a'), 'touchstart', e => user.selectAnswer(), false);
-            user.eventKeys.touchStartAttack = handler.addListener(document.getElementById('b'), 'touchstart', e => user.selectAnswer(), false);
         } else if (eventType === 'continue') {
             user.eventKeys.keyup = handler.addListener(window, 'keyup', user.newGame.bind(user), false);
-
-            //マウス操作
-            user.eventKeys.mouseUpRight = handler.addListener(document.getElementById('ArrowRight'), 'mouseup', user.newGame.bind(user), false);
-            user.eventKeys.mouseUpLeft = handler.addListener(document.getElementById('ArrowLeft'), 'mouseup', user.newGame.bind(user), false);
-            user.eventKeys.mouseUpUp = handler.addListener(document.getElementById('ArrowUp'), 'mouseup', user.newGame.bind(user), false);
-            user.eventKeys.mouseUpDown = handler.addListener(document.getElementById('ArrowDown'), 'mouseup', user.newGame.bind(user), false);
-
-            user.eventKeys.mouseDownDig = handler.addListener(document.getElementById('a'), 'mousedown', user.newGame.bind(user), false);
-            user.eventKeys.mouseDownAttack = handler.addListener(document.getElementById('b'), 'mousedown', user.newGame.bind(user), false);
-
-            //タッチ操作
-            user.eventKeys.touchEndRight = handler.addListener(document.getElementById('ArrowRight'), 'touchend', user.newGame.bind(user), false);
-            user.eventKeys.touchEndLeft = handler.addListener(document.getElementById('ArrowLeft'), 'touchend', user.newGame.bind(user), false);
-            user.eventKeys.touchEndUp = handler.addListener(document.getElementById('ArrowUp'), 'touchend', user.newGame.bind(user), false);
-            user.eventKeys.touchEndDown = handler.addListener(document.getElementById('ArrowDown'), 'touchend', user.newGame.bind(user), false);
-
-            user.eventKeys.touchStartDig = handler.addListener(document.getElementById('a'), 'touchstart', user.newGame.bind(user), false);
-            user.eventKeys.touchStartAttack = handler.addListener(document.getElementById('b'), 'touchstart', user.newGame.bind(user), false);
         }
     }
 }

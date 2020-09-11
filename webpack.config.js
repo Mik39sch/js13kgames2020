@@ -1,4 +1,9 @@
+const file = require('file-loader');
 const TerserPlugin = require('terser-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require("copy-webpack-plugin");
+const WriteFilePlugin = require("write-file-webpack-plugin");
+
 module.exports = {
     mode: 'production',
     entry: './js/app.js',
@@ -18,8 +23,12 @@ module.exports = {
           }
         }
       })]
-    }
+    },
+    plugins: [
+      new HtmlWebpackPlugin({
+        title: 'Lost Treasures',
+        template: './template.html',
+        filename: 'index.html',
+      }),
+    ],
 };
-// module.exports = {
-
-//   };
