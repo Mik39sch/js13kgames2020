@@ -15,9 +15,10 @@ export default class Game
         this.message = messages.initial_message;
         this.eventKeys = {};
         this.attackCount = 0;
+        this.killCount = 0;
         this.hitEnemyKey = false;
 
-        this.hitPoint = 100;
+        this.maxHitPoint = 100;
         this.hitCount = 0;
         this.start();
     }
@@ -33,7 +34,9 @@ export default class Game
             this.answer = null;
             this.player.equipment = [];
             this.message = messages.initial_message;
-            this.hitPoint = 100;
+            this.maxHitPoint = 100;
+            this.hitPoint = this.maxHitPoint;
+            this.killCount = 0;
             this.setEventListener('normal', this);
 
             this.initialize = false;
@@ -119,7 +122,7 @@ export default class Game
             }, 1000);
         } else {
             msgEl.classList.add('fadeout');
-            msgEl.innerText = `${this.floor}F`;
+            msgEl.innerText = `Stage ${this.floor}`;
             setTimeout(function(){
                 msgEl.style.display = "none";
             }, 5000);
@@ -131,10 +134,10 @@ export default class Game
     playing(timestamp)
     {
         const elapsed = (timestamp - this.prevTimestamp) / 1000;
-        if (elapsed <= FRAME_TIME && !this.player.hit){
-            window.requestAnimationFrame(this.playing.bind(this));
-            return;
-        }
+        // if (elapsed <= FRAME_TIME && !this.player.hit){
+        //     window.requestAnimationFrame(this.playing.bind(this));
+        //     return;
+        // }
 
         if (this.stop) {
             return;
@@ -170,6 +173,11 @@ export default class Game
             character: this.player,
             actionType: type
         });
+
+        if (this.player.hit) {
+            window.requestAnimationFrame(this.playing.bind(this));
+            return;
+        }
 
         // 敵の動作
         for (const [key, enemy] of Object.entries(this.enemies)) {
@@ -245,6 +253,11 @@ export default class Game
                         if (type === 'attack1') {
                             this.hitEnemyKey = this.checkHitEnemies(row, col, obj);
                             if (this.hitEnemyKey !== false) {
+                                this.killCount++;
+                                if (this.killCount % 10 === 0) {
+                                    this.message = messages.lvup;
+                                    this.maxHitPoint += 10;
+                                }
                                 break;
                             }
                         }
@@ -563,7 +576,7 @@ export default class Game
                     posX: hole.posX,
                     clearFunc: () => {
                         this.message = messages.found_onigiri;
-                        if (this.hitPoint < 100) this.hitPoint += 10;
+                        if (this.hitPoint < this.maxHitPoint) this.hitPoint += 10;
                     }
                 };
             } else if (3 === num) {
@@ -601,12 +614,11 @@ export default class Game
                     };
                 }
             } else if (0 === getRandomInt(0, 50)) {
-                if (this.floor > 1) {
-                    this.stop = true;
-                    this.start();
-                    this.floor--;
-                    this.message = messages.fall_down;
-                }
+                this.stop = true;
+                this.floor++;
+                this.start();
+                this.message = messages.fall_down;
+                return;
             }
 
             hole.put = true;
@@ -705,13 +717,13 @@ export default class Game
             this.stage.width*PIXEL_SIZE
         );
         this.mCanvas.fillText(
-            `HP        : ${this.hitPoint}`,
+            `HP        : ${this.hitPoint}/${this.maxHitPoint}`,
             startPosition+margin*2,
             this.stage.height*PIXEL_SIZE + 20*2 +margin*2,
             this.stage.width*PIXEL_SIZE
         );
         this.mCanvas.fillText(
-            `Floor     : ${this.floor}F`,
+            `Stage     : ${this.floor}`,
             startPosition+margin*2,
             this.stage.height*PIXEL_SIZE+20*3+margin*2,
             this.stage.width*PIXEL_SIZE
@@ -879,6 +891,7 @@ export default class Game
 
     selectAnswer()
     {
+        this.setEventListener('normal', this);
         if (this.answer === 'Yes') {
             if (this.player.equipment.includes("key")) {
                 this.message = messages.up_stairs;
@@ -907,7 +920,6 @@ export default class Game
             window.requestAnimationFrame(this.playing.bind(this));
             this.message = messages.stay_floor;
         }
-        this.setEventListener('normal', this);
     }
 
     keyUpQuestion(e)
@@ -953,6 +965,7 @@ export default class Game
     {
         for (const [key, event] of Object.entries(user.eventKeys)) {
             handler.removeListener(event);
+            delete user.eventKeys[key];
         }
         if (eventType === 'normal') {
             // キーボード操作

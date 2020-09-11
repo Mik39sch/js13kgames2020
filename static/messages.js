@@ -47,5 +47,8 @@ messages = {
     ],
     fall_down: [
         "I fall down the hole..."
+    ],
+    lvup: [
+        "I killed many zombie so my power up."
     ]
 };
