@@ -20,8 +20,9 @@ export default class Game
 
         this.maxHitPoint = 100;
         this.hitCount = 0;
-        this.start();
         this.swordHitPoint = 0;
+        this.title = true;
+        this.start();
     }
 
     start()
@@ -77,8 +78,32 @@ export default class Game
 
         let self = this;
 
-        if (this.gameover) {
+        if (this.title) {
             msgEl.innerHTML = "";
+
+            msgEl.innerHTML += '<h1 style="margin:15px">Lost<br>Treasures</h1>';
+
+            msgEl.innerHTML += "One day... There was a treasures hunter.<br>";
+            msgEl.innerHTML += "He heard a rumor that there was some treasures in the cave.<br>";
+            msgEl.innerHTML += "So he went to the cave but... He was lost!<br>";
+            msgEl.innerHTML += "You need to navigate to the exit for him.<br>";
+            msgEl.innerHTML += "<br>";
+            msgEl.innerHTML += "ArrowKeys: move<br>";
+            msgEl.innerHTML += "SpaceKeys: dig *if you have a shovel<br>";
+            msgEl.innerHTML += "EnterKeys: attack *if you have a sword<br>";
+
+            msgEl.innerHTML += "<br>";
+            msgEl.innerHTML += "Press any key to start a new game.";
+
+            msgEl.classList.remove('fadeout');
+            this.title = false;
+
+            setTimeout(function(){
+                self.setEventListener('continue', self);
+            }, 1000);
+        } else if (this.gameover) {
+            msgEl.innerHTML = "";
+            this.title = true;
 
             if (this.floor > 404) {
                 msgEl.innerHTML += "It been days since i was looking for an exit.<br>";
@@ -104,6 +129,7 @@ export default class Game
             }, 1000);
 
         } else if (this.gameclear) {
+            this.title = true;
             msgEl.innerHTML = "";
 
             msgEl.innerHTML += "I finally found the exit. I think this cave is very dangerous...<br>";
@@ -540,22 +566,20 @@ export default class Game
             }
             this.drawObject(hole.img, hole.posY, hole.posX);
 
-            if (0 === getRandomInt(0, 50)) {
-                if (!this.player.equipment.includes("key")) {
-                    this.thingList[getRandomInt(0, 999)] = {
-                        count: 30,
-                        img: KEY_IMG,
-                        holeKey: key,
-                        put: false,
-                        clear: false,
-                        posY: hole.posY,
-                        posX: hole.posX,
-                        clearFunc: () => {
-                            this.message = JSON.parse(JSON.stringify(messages.found_key));
-                            this.player.equipment.push("key");
-                        }
-                    };
-                }
+            if (!this.player.equipment.includes("key") && 0 === getRandomInt(0, 10)) {
+                this.thingList[getRandomInt(0, 999)] = {
+                    count: 30,
+                    img: KEY_IMG,
+                    holeKey: key,
+                    put: false,
+                    clear: false,
+                    posY: hole.posY,
+                    posX: hole.posX,
+                    clearFunc: () => {
+                        this.message = JSON.parse(JSON.stringify(messages.found_key));
+                        this.player.equipment.push("key");
+                    }
+                };
             } else if (0 === getRandomInt(0, 10)) {
                 let enemy = new CharacterWriter('enemy', 'down');
                 if (!this.checkHitWall(hole)) {
@@ -894,7 +918,7 @@ export default class Game
                 if (this.floor > 404) {
                     this.gameover = true;
                 }
-                if (0 === getRandomInt(0, 50)) {
+                if (0 === getRandomInt(0, 30)) {
                     this.gameclear = true;
                 }
                 this.start();
