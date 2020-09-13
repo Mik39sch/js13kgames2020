@@ -12,7 +12,7 @@ export default class Game
 
         this.stage = new StageWriter(canvasEl);
         this.player = new CharacterWriter('player', 'top');
-        this.message = messages.initial_message;
+        this.message = JSON.parse(JSON.stringify(messages.initial_message));
         this.eventKeys = {};
         this.attackCount = 0;
         this.killCount = 0;
@@ -21,6 +21,7 @@ export default class Game
         this.maxHitPoint = 100;
         this.hitCount = 0;
         this.start();
+        this.swordHitPoint = 0;
     }
 
     start()
@@ -33,7 +34,7 @@ export default class Game
             this.floor = 1;
             this.answer = null;
             this.player.equipment = [];
-            this.message = messages.initial_message;
+            this.message = JSON.parse(JSON.stringify(messages.initial_message));
             this.maxHitPoint = 100;
             this.hitPoint = this.maxHitPoint;
             this.killCount = 0;
@@ -57,10 +58,6 @@ export default class Game
         this.putCharacter(this.player);
 
         this.enemies = {};
-        // let enemy = new CharacterWriter('enemy', 'down');
-        // this.putCharacter(enemy);
-        // this.enemies[getRandomInt(0, 999)] = {count: 5, img: enemy, holeKey: 0};
-
         this.enemyMove = 5;
         this.stop = false;
 
@@ -182,6 +179,7 @@ export default class Game
             }
             if (this.hitEnemyKey === key) {
                 enemy.clear = true;
+                this.hitEnemyKey = false;
                 continue;
             }
 
@@ -248,9 +246,15 @@ export default class Game
                             this.hitEnemyKey = this.checkHitEnemies(row, col, obj);
                             if (this.hitEnemyKey !== false) {
                                 this.killCount++;
+                                this.message = JSON.parse(JSON.stringify(messages.kill_zombie));
                                 if (this.killCount % 10 === 0) {
-                                    this.message = messages.lvup;
+                                    this.message.push(messages.lvup[0]);
                                     this.maxHitPoint += 10;
+                                }
+                                this.swordHitPoint--;
+                                if (this.swordHitPoint === 0) {
+                                    this.message.push(messages.broken_sword[0]);
+                                    this.player.equipment = this.player.equipment.filter(eq=> eq !== 'sword');
                                 }
                                 break;
                             }
@@ -405,7 +409,7 @@ export default class Game
                         if (object.index === 'player') {
                             object.hit = true;
                             this.hitCount = 2;
-                            this.message = messages.zombie_attack;
+                            this.message = JSON.parse(JSON.stringify(messages.zombie_attack));
                             this.hitPoint -= 10;
                             if (this.hitPoint <= 0) {
                                 this.gameover = true;
@@ -462,7 +466,7 @@ export default class Game
                 if (false !== this.checkHitEnemies(row, col, this.player)) return true;
                 if (this.checkHitThing(row, col, this.player)) return true;
                 if (this.checkHitExit(row, col, this.player)) {
-                    this.message = messages.up_or_stay;
+                    this.message = JSON.parse(JSON.stringify(messages.up_or_stay));
                     this.stop = true;
                     this.answer = 'Yes';
                     this.setEventListener('question', this);
@@ -498,7 +502,7 @@ export default class Game
             if (thing.count >= 0) {
                 thing.count--;
                 if (thing.count === 0) {
-                    this.holeList[thing.holeKey].clear = true;
+                    if (this.holeList[thing.holeKey]) this.holeList[thing.holeKey].clear = true;
                 }
                 continue;
             }
@@ -529,68 +533,14 @@ export default class Game
                 hole.count--;
                 if (hole.count === 0) {
                     this.notFoundCount++;
-                    this.message = messages.not_found;
+                    this.message = JSON.parse(JSON.stringify(messages.not_found));
                     hole.clear = true;
                 }
                 continue;
             }
             this.drawObject(hole.img, hole.posY, hole.posX);
 
-            let num = getRandomInt(0, 10);
-
-            if (0 === num) {
-                let enemy = new CharacterWriter('enemy', 'down');
-                if (!this.checkHitWall(hole)) {
-                    this.putCharacter(enemy, hole.posX, hole.posY);
-                    this.enemies[getRandomInt(0, 999)] = {count: 30, img: enemy, holeKey: key};
-                }
-            } else if (1 === num) {
-                this.thingList[getRandomInt(0, 999)] = {
-                    count: 30,
-                    img: COIN_IMG,
-                    holeKey: key,
-                    put: false,
-                    clear: false,
-                    posY: hole.posY,
-                    posX: hole.posX,
-                    clearFunc: () => {
-                        this.message = messages.found_coin;
-                        this.coinCount++;
-                    }
-                };
-            } else if (2 === num) {
-                this.thingList[getRandomInt(0, 999)] = {
-                    count: 30,
-                    img: ONIGIRI_IMG,
-                    holeKey: key,
-                    put: false,
-                    clear: false,
-                    posY: hole.posY,
-                    posX: hole.posX,
-                    clearFunc: () => {
-                        this.message = messages.found_onigiri;
-                        if (this.hitPoint < this.maxHitPoint) this.hitPoint += 10;
-                    }
-                };
-            } else if (3 === num) {
-                if (!this.player.equipment.includes("sword")) {
-                    this.thingList[getRandomInt(0, 999)] = {
-                        count: 30,
-                        img: SWORD_IMG,
-                        holeKey: key,
-                        put: false,
-                        clear: false,
-                        posY: hole.posY,
-                        posX: hole.posX,
-                        clearFunc: () => {
-                            if (!this.player.equipment.includes("sword")) {
-                                this.player.equipment.push('sword');
-                            }
-                            this.message = messages.found_sword;
-                        }
-                    };
-                }
-            } else if (0 === getRandomInt(0, 50)) {
+            if (0 === getRandomInt(0, 50)) {
                 if (!this.player.equipment.includes("key")) {
                     this.thingList[getRandomInt(0, 999)] = {
                         count: 30,
@@ -601,16 +551,67 @@ export default class Game
                         posY: hole.posY,
                         posX: hole.posX,
                         clearFunc: () => {
-                            this.message = messages.found_key;
+                            this.message = JSON.parse(JSON.stringify(messages.found_key));
                             this.player.equipment.push("key");
                         }
                     };
                 }
-            } else if (0 === getRandomInt(0, 50)) {
+            } else if (0 === getRandomInt(0, 10)) {
+                let enemy = new CharacterWriter('enemy', 'down');
+                if (!this.checkHitWall(hole)) {
+                    this.putCharacter(enemy, hole.posX, hole.posY);
+                    this.enemies[getRandomInt(0, 999)] = {count: 30, img: enemy, holeKey: key};
+                }
+            } else if (!this.player.equipment.includes("sword") && 0 === getRandomInt(0, 10)) {
+                this.thingList[getRandomInt(0, 999)] = {
+                    count: 30,
+                    img: SWORD_IMG,
+                    holeKey: key,
+                    put: false,
+                    clear: false,
+                    posY: hole.posY,
+                    posX: hole.posX,
+                    clearFunc: () => {
+                        if (!this.player.equipment.includes("sword")) {
+                            this.player.equipment.push('sword');
+                        }
+                        this.message = JSON.parse(JSON.stringify(messages.found_sword));
+                    }
+                };
+                this.swordHitPoint = getRandomInt(1, 10);
+            } else if (this.hitPoint < this.maxHitPoint && 0 === getRandomInt(0, 10)) {
+                this.thingList[getRandomInt(0, 999)] = {
+                    count: 30,
+                    img: ONIGIRI_IMG,
+                    holeKey: key,
+                    put: false,
+                    clear: false,
+                    posY: hole.posY,
+                    posX: hole.posX,
+                    clearFunc: () => {
+                        this.message = JSON.parse(JSON.stringify(messages.found_onigiri));
+                        if (this.hitPoint < this.maxHitPoint) this.hitPoint += 10;
+                    }
+                };
+            } else if (1 === getRandomInt(0, 10)) {
+                this.thingList[getRandomInt(0, 999)] = {
+                    count: 30,
+                    img: COIN_IMG,
+                    holeKey: key,
+                    put: false,
+                    clear: false,
+                    posY: hole.posY,
+                    posX: hole.posX,
+                    clearFunc: () => {
+                        this.message = JSON.parse(JSON.stringify(messages.found_coin));
+                        this.coinCount++;
+                    }
+                };
+            } else if (0 === getRandomInt(0, 100)) {
                 this.stop = true;
                 this.floor++;
                 this.start();
-                this.message = messages.fall_down;
+                this.message = JSON.parse(JSON.stringify(messages.fall_down));
                 return;
             }
 
@@ -808,7 +809,7 @@ export default class Game
 
         let shovel = {img:SHOVEL_IMG, posY:posY, posX:posX, put:false, clear: false, clearFunc: () => {
             this.player.equipment.push('shovel');
-            this.message = messages.found_shovel;
+            this.message = JSON.parse(JSON.stringify(messages.found_shovel));
         }};
         if (this.checkHitWall(shovel)) {
             this.putShovel();
@@ -887,7 +888,7 @@ export default class Game
         this.setEventListener('normal', this);
         if (this.answer === 'Yes') {
             if (this.player.equipment.includes("key")) {
-                this.message = messages.up_stairs;
+                this.message = JSON.parse(JSON.stringify(messages.up_stairs));
                 this.floor++;
                 this.answer = null;
                 if (this.floor > 404) {
@@ -903,7 +904,7 @@ export default class Game
                 this.player.posX = this.player.prePosX;
                 this.player.newDirection = null;
                 window.requestAnimationFrame(this.playing.bind(this));
-                this.message = messages.not_found_key;
+                this.message = JSON.parse(JSON.stringify(messages.not_found_key));
             }
         } else {
             this.stop = false;
@@ -911,7 +912,7 @@ export default class Game
             this.player.posX = this.player.prePosX;
             this.player.newDirection = null;
             window.requestAnimationFrame(this.playing.bind(this));
-            this.message = messages.stay_floor;
+            this.message = JSON.parse(JSON.stringify(messages.stay_floor));
         }
     }
 

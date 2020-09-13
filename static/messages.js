@@ -50,5 +50,11 @@ messages = {
     ],
     lvup: [
         "I killed many zombie so my power up."
+    ],
+    broken_sword: [
+        "Oh NO!! My sword was broken!!!"
+    ],
+    kill_zombie: [
+        "I killed zombie!! I'm strong!!!"
     ]
 };
